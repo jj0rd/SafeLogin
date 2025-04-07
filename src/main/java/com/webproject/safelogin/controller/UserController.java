@@ -1,13 +1,16 @@
 package com.webproject.safelogin.controller;
 
+import com.webproject.safelogin.Dto.Login;
 import com.webproject.safelogin.model.User;
 import com.webproject.safelogin.repository.UserRepository;
 import com.webproject.safelogin.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -65,10 +68,14 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Object> login(@RequestBody User user, HttpServletRequest request) {
+    public ResponseEntity<Object> login(@RequestBody Login loginRequest, HttpServletRequest request) {
+        if (loginRequest.getEmail() == null || loginRequest.getPassword() == null) {
+            return ResponseEntity.badRequest().body("Email and password must be provided");
+        }
+
         try {
-            System.out.println("Received user: " + user.getEmail());  // Logowanie danych
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword());
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    loginRequest.getEmail(), loginRequest.getPassword());
 
             Authentication authentication = authenticationManager.authenticate(authToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -77,15 +84,14 @@ public class UserController {
             session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
             UserDetails loggedInUser = (UserDetails) authentication.getPrincipal();
+
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Login successful");
-            response.put("user", loggedInUser);
+            response.put("email", loggedInUser.getUsername());
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            // Logowanie błędu
-            System.err.println("Login failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed: Invalid credentials");
         }
     }
@@ -99,6 +105,7 @@ public class UserController {
 
         return ResponseEntity.ok("Logged out successfully");
     }
+
 
     @GetMapping("/users")
     public List<User> getUsers(){
