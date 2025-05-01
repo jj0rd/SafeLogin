@@ -36,7 +36,8 @@ public class SecurityConfig {
                                 "/logout",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/getVideo/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

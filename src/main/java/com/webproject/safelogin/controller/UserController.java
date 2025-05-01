@@ -37,6 +37,12 @@ public class UserController {
 
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
 
+    private boolean isPasswordValid(String password) {
+        // Co najmniej 8 znaków, 1 mała litera, 1 wielka litera, 1 cyfra, 1 znak specjalny
+        String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&._-])[A-Za-z\\d@$!%*?&._-]{8,}$";
+        return password != null && password.matches(regex);
+    }
+
     @PostMapping("/register")
     User newUser(@RequestBody User newUser)
     {
@@ -44,6 +50,11 @@ public class UserController {
         if (existingUser != null) {
             throw new IllegalArgumentException("The user with the specified email address already exists.");
         }
+
+        if (!isPasswordValid(newUser.getPassword())) {
+            throw new IllegalArgumentException("The password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one digit, and one special character.");
+        }
+
         newUser.setPassword(encoder.encode(newUser.getPassword()));
         return userRepository.save(newUser);
     }
@@ -51,6 +62,10 @@ public class UserController {
     @PutMapping("/editUser/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Integer id, @RequestBody User updatedUser) {
         try {
+            if (updatedUser.getPassword() != null && !isPasswordValid(updatedUser.getPassword())) {
+                return ResponseEntity.badRequest().body(null); // Można zwrócić JSON z błędem
+            }
+
             User updatedRecord = userService.updateUser(id, updatedUser);
             return ResponseEntity.ok(updatedRecord);
         } catch (IllegalArgumentException e) {
