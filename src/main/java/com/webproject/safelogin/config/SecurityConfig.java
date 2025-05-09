@@ -37,7 +37,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/getVideo/**"
+                                "/getVideo/**",
+                                "/2fa/verify"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

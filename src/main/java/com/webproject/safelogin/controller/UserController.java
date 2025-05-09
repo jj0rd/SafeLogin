@@ -1,5 +1,8 @@
 package com.webproject.safelogin.controller;
 
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 import com.webproject.safelogin.Dto.Login;
 import com.webproject.safelogin.model.User;
 import com.webproject.safelogin.repository.UserRepository;
@@ -10,6 +13,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -44,20 +48,42 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    User newUser(@RequestBody User newUser)
-    {
+    public ResponseEntity<Object> register(@RequestBody User newUser) {
+        // Sprawdzanie, czy użytkownik o podanym e-mailu już istnieje
         User existingUser = userRepository.findByEmail(newUser.getEmail());
         if (existingUser != null) {
-            throw new IllegalArgumentException("The user with the specified email address already exists.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("The user with the specified email address already exists.");
         }
 
+        // Weryfikacja poprawności hasła
         if (!isPasswordValid(newUser.getPassword())) {
-            throw new IllegalArgumentException("The password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one digit, and one special character.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("The password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one digit, and one special character.");
         }
 
+        // Szyfrowanie hasła
         newUser.setPassword(encoder.encode(newUser.getPassword()));
-        return userRepository.save(newUser);
+
+        // Tworzenie sekretu TOTP
+        GoogleAuthenticator gAuth = new GoogleAuthenticator();
+        GoogleAuthenticatorKey key = gAuth.createCredentials();
+        newUser.setTotpSecret(key.getKey());
+
+        // Zapisz nowego użytkownika do bazy danych
+        userRepository.save(newUser);
+
+        // Generowanie URL QR (dla aplikacji takiej jak Google Authenticator)
+        String otpAuthURL = GoogleAuthenticatorQRGenerator.getOtpAuthURL("YourApp", newUser.getEmail(), key);
+
+        // Zwróć odpowiedź z linkiem QR do użytkownika
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "User registered successfully. Please scan the QR code with your TOTP application.");
+        response.put("otpAuthURL", otpAuthURL);
+
+        return ResponseEntity.ok(response);
     }
+
 
     @PutMapping("/editUser/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Integer id, @RequestBody User updatedUser) {
@@ -88,6 +114,19 @@ public class UserController {
             return ResponseEntity.badRequest().body("Email and password must be provided");
         }
 
+        User user = userService.findByEmail(loginRequest.getEmail());
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed: Invalid credentials");
+        }
+
+        if (user.isAccountLocked()) {
+            if (userService.unlockIfTimeExpired(user)) {
+                // Konto zostało odblokowane – kontynuuj logowanie
+            } else {
+                return ResponseEntity.status(HttpStatus.LOCKED).body("Account is locked. Try again later.");
+            }
+        }
+
         try {
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     loginRequest.getEmail(), loginRequest.getPassword());
@@ -98,25 +137,52 @@ public class UserController {
             HttpSession session = request.getSession(true);
             session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
-            UserDetails loggedInUser = (UserDetails) authentication.getPrincipal();
+            // Reset prób logowania po sukcesie
+            userService.resetFailedAttempts(user);
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Login successful");
-            response.put("email", loggedInUser.getUsername());
+            session.setAttribute("2fa_authenticated", false);
 
-            return ResponseEntity.ok(response);
+            if (user.getTotpSecret() != null) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Password correct. Please verify TOTP.");
+                response.put("require2FA", true);
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Login successful.");
+                response.put("require2FA", false);
+                return ResponseEntity.ok(response);
+            }
 
-        } catch (Exception e) {
+        } catch (BadCredentialsException e) {
+            userService.increaseFailedAttempts(user);
+
+            if (user.getFailedAttempts() >= UserService.MAX_FAILED_ATTEMPTS) {
+                userService.lock(user);
+                return ResponseEntity.status(HttpStatus.LOCKED).body("Account locked due to multiple failed attempts.");
+            }
+
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed: Invalid credentials");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
         }
     }
 
+
+
+
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(HttpServletRequest request) {
+    public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
+        SecurityContextHolder.clearContext();
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate(); // Usunięcie sesji
         }
+        jakarta.servlet.http.Cookie cookie = new
+                jakarta.servlet.http.Cookie("JSESSIONID", null);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
 
         return ResponseEntity.ok("Logged out successfully");
     }
