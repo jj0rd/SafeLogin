@@ -1,23 +1,80 @@
-import React from 'react';
-import { Form, Input, Button } from 'antd';
+import React, { useState } from 'react';
+import { Form, Input, Button, message, Modal } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import Home from './Home'
 
 const Login = () => {
-  const onFinish = (values) => {
-    console.log('Zalogowano z danymi:', values);
-    // tutaj możesz wysłać dane do API
+  const [form] = Form.useForm();
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [totpCode, setTotpCode] = useState('');
+  const navigate = useNavigate();
+
+  const onFinish = async (values) => {
+    try {
+      const response = await fetch('http://localhost:8080/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(values),
+      });
+
+      const contentType = response.headers.get('content-type');
+      const isJson = contentType && contentType.includes('application/json');
+      const data = isJson ? await response.json() : await response.text();
+
+      if (response.ok) {
+        if (data.require2FA) {
+          message.info(data.message);
+          setIsModalVisible(true);
+        } else {
+          message.success(data.message);
+          navigate('/home');
+        }
+      } else {
+        message.error(data || 'Błąd logowania');
+      }
+    } catch (err) {
+      console.error('Błąd połączenia:', err);
+      message.error('Błąd połączenia z serwerem');
+    }
+  };
+
+  const handleTotpSubmit = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/2fa/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ code: parseInt(totpCode, 10) }),
+      });
+
+      const data = await response.text();
+
+      if (response.ok) {
+        message.success(data);
+        setIsModalVisible(false);
+        navigate('/home');
+      } else {
+        message.error(data);
+      }
+    } catch (err) {
+      console.error('Błąd weryfikacji TOTP:', err);
+      message.error('Błąd połączenia przy weryfikacji TOTP');
+    }
   };
 
   return (
     <div style={{ maxWidth: 400, margin: '0 auto' }}>
       <h2>Logowanie</h2>
-      <Form
-        layout="vertical"
-        onFinish={onFinish}
-      >
+      <Form layout="vertical" form={form} onFinish={onFinish}>
         <Form.Item
-          label="Nick lub Email"
-          name="identifier"
-          rules={[{ required: true, message: 'Podaj nick lub email!' }]}
+          label="Email"
+          name="email"
+          rules={[{ required: true, message: 'Podaj email!' }]}
         >
           <Input />
         </Form.Item>
@@ -36,6 +93,22 @@ const Login = () => {
           </Button>
         </Form.Item>
       </Form>
+
+      <Modal
+        title="Weryfikacja dwuskładnikowa"
+        open={isModalVisible}
+        onOk={handleTotpSubmit}
+        onCancel={() => setIsModalVisible(false)}
+        okText="Potwierdź"
+        cancelText="Anuluj"
+      >
+        <Input
+          placeholder="Wpisz kod TOTP"
+          value={totpCode}
+          onChange={(e) => setTotpCode(e.target.value)}
+          maxLength={20}
+        />
+      </Modal>
     </div>
   );
 };

@@ -32,7 +32,7 @@ html, body, #root {
 .app-inner-layout {
   padding: 24px 0;
   border-radius: var(--border-radius-lg);
-  background-color: var(--color-bg-container); /* fallback, AntD theme applies real colors */
+  background-color: var(--color-bg-container);
 }
 
 .app-content {
@@ -41,7 +41,7 @@ html, body, #root {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   background-color: rgba(245, 245, 245, 0.8);
-  width: 60%;
+  width: 40%;
    margin: 0 auto;
 }
 

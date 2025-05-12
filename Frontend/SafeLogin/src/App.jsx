@@ -4,7 +4,7 @@ import { Layout, Menu, theme, Breadcrumb } from 'antd';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
-
+import Home from './pages/Home';
 const { Header, Content, Footer } = Layout;
 
 const App = () => {
@@ -65,6 +65,7 @@ const App = () => {
                 />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/home" element ={<Home />}/>
               </Routes>
             </Content>
           </Layout>
