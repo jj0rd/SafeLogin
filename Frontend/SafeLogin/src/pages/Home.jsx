@@ -1,16 +1,27 @@
 import React from 'react';
-import { Form, Input, Button } from 'antd';
+import { Button, message } from 'antd';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
-  const onFinish = (values) => {
-    console.log('Zarejestrowano z danymi:', values);
-    // tutaj możesz wysłać dane do API
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await axios.post('http://localhost:8080/logout');
+      message.success('Wylogowano pomyślnie');
+      navigate('/');
+    } catch (error) {
+      message.error('Wystąpił błąd podczas wylogowania');
+    }
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '0 auto' }}>
-      <h2>Rejestracja</h2>
-     
+    <div style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center' }}>
+      <h2>Witaj na stronie głównej</h2>
+      <Button type="primary" danger onClick={handleLogout}>
+        Wyloguj się
+      </Button>
     </div>
   );
 };
