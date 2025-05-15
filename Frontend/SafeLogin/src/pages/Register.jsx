@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, message, Typography } from 'antd';
+import { Form, Input, Button, message, Typography, Modal } from 'antd';
 import axios from 'axios';
 
 const { Paragraph } = Typography;
@@ -7,20 +7,17 @@ const { Paragraph } = Typography;
 const Register = () => {
   const [qrCode, setQrCode] = useState(null);
   const [secret, setSecret] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const onFinish = async (values) => {
     try {
       const response = await axios.post('http://localhost:8080/register', values);
       message.success(response.data.message);
-      
-      // Zapisz kod QR (upewniamy się, że nie ma zduplikowanego prefixu)
       if (response.data.qrCode) {
-        // Usuwamy prefix jeśli istnieje w odpowiedzi
         const qrCodeData = response.data.qrCode.replace(/^data:image\/png;base64,/, '');
         setQrCode(qrCodeData);
+        setIsModalVisible(true);
       }
-      
-      // Jeśli backend zwraca sekret, zapisz go
       if (response.data.secret) {
         setSecret(response.data.secret);
       }
@@ -32,7 +29,9 @@ const Register = () => {
       }
     }
   };
-
+const handleClose = () => {
+    setIsModalVisible(false);
+  };
   return (
     <div style={{ maxWidth: 400, margin: '0 auto' }}>
       <h2>Rejestracja</h2>
@@ -93,23 +92,15 @@ const Register = () => {
         </Form.Item>
       </Form>
 
-      {qrCode && (
-        <div style={{ marginTop: 20, textAlign: 'center' }}>
-          <Paragraph>
-            Zeskanuj ten kod QR za pomocą aplikacji uwierzytelniającej (np. Google Authenticator):
-          </Paragraph>
-          <img 
-            src={`data:image/png;base64,${qrCode}`} 
-            alt="QR Code" 
-            style={{ maxWidth: '100%', marginTop: 10, marginBottom: 10 }}
-          />
-          {secret && (
-            <Paragraph>
-              Lub wprowadź ręcznie ten sekret: <strong>{secret}</strong>
-            </Paragraph>
-          )}
-        </div>
-      )}
+     <Modal title="Kod QR" open={isModalVisible} onCancel={handleClose} footer={null}>
+        {qrCode && (
+          <div style={{ textAlign: 'center' }}>
+            <Paragraph>Zeskanuj ten kod QR za pomocą aplikacji uwierzytelniającej:</Paragraph>
+            <img src={`data:image/png;base64,${qrCode}`} alt="QR Code" style={{ maxWidth: '100%' }} />
+            {secret && <Paragraph>Lub wprowadź ręcznie ten sekret: <strong>{secret}</strong></Paragraph>}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
