@@ -1,8 +1,5 @@
 package com.webproject.safelogin.controller;
 
-import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
-import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 import com.webproject.safelogin.Dto.Login;
 import com.webproject.safelogin.model.User;
 import com.webproject.safelogin.repository.UserRepository;
@@ -14,16 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import util.TotpUtil;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,21 +60,22 @@ public class UserController {
         // Szyfrowanie hasła
         newUser.setPassword(encoder.encode(newUser.getPassword()));
 
-        // Tworzenie sekretu TOTP
-        GoogleAuthenticator gAuth = new GoogleAuthenticator();
-        GoogleAuthenticatorKey key = gAuth.createCredentials();
-        newUser.setTotpSecret(key.getKey());
+        // Generowanie sekretu TOTP
+        String secret = generateMfaSecret(newUser); // Nowa metoda – patrz niżej
+        String otpAuthURL = TotpUtil.generateTotpUri("YourApp", newUser.getEmail(), secret);
 
-        // Zapisz nowego użytkownika do bazy danych
+        // Zapis sekretu do użytkownika
+        newUser.setTotpSecret(secret);
         userRepository.save(newUser);
 
-        // Generowanie URL QR (dla aplikacji takiej jak Google Authenticator)
-        String otpAuthURL = GoogleAuthenticatorQRGenerator.getOtpAuthURL("YourApp", newUser.getEmail(), key);
+        // Generowanie QR kodu (opcjonalnie – np. jeśli frontend chce base64 obrazka)
+        String qrCode = util.TotpUtil.generateQrCode(otpAuthURL);
 
         // Zwróć odpowiedź z linkiem QR do użytkownika
         Map<String, Object> response = new HashMap<>();
         response.put("message", "User registered successfully. Please scan the QR code with your TOTP application.");
         response.put("otpAuthURL", otpAuthURL);
+        response.put("qrCode", qrCode); // base64 PNG
 
         return ResponseEntity.ok(response);
     }
@@ -98,6 +94,7 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
     }
+
     @DeleteMapping("/deleteUser/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Integer id) {
         try {
@@ -169,8 +166,6 @@ public class UserController {
     }
 
 
-
-
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
         SecurityContextHolder.clearContext();
@@ -189,7 +184,14 @@ public class UserController {
 
 
     @GetMapping("/users")
-    public List<User> getUsers(){
+    public List<User> getUsers() {
         return null;
+    }
+
+    public String generateMfaSecret(User user) {
+        String secret = util.TotpUtil.generateSecret();
+        user.setTotpSecret(secret);
+        return secret;
+
     }
 }
