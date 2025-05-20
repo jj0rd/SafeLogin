@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, message, Modal } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import Home from './Home'
+import { useNavigate, Navigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 
 const Login = () => {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [totpCode, setTotpCode] = useState('');
   const navigate = useNavigate();
+  const { isAuthenticated, setIsAuthenticated } = useAuth();
+
+  if (isAuthenticated) {
+    return <Navigate to="/home" />;
+  }
 
   const onFinish = async (values) => {
     try {
@@ -30,6 +35,7 @@ const Login = () => {
           setIsModalVisible(true);
         } else {
           message.success(data.message);
+          setIsAuthenticated(true);
           navigate('/home');
         }
       } else {
@@ -57,6 +63,7 @@ const Login = () => {
       if (response.ok) {
         message.success(data);
         setIsModalVisible(false);
+        setIsAuthenticated(true);
         navigate('/home');
       } else {
         message.error(data);

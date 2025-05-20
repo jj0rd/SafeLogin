@@ -32,6 +32,18 @@ public class TwoFactorAuthController {
         String email = auth.getName();
         User user = userService.findByEmail(email);
 
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
+        }
+
+        if (user.isAccountLocked()) {
+            if (userService.unlockIfTimeExpired(user)) {
+                // Konto zostało odblokowane – kontynuuj weryfikację
+            } else {
+                return ResponseEntity.status(HttpStatus.LOCKED).body("Account is locked. Try again later.");
+            }
+        }
+
         GoogleAuthenticator gAuth = new GoogleAuthenticator();
         boolean isCodeValid = gAuth.authorize(user.getTotpSecret(), request.getCode());
 
@@ -40,8 +52,17 @@ public class TwoFactorAuthController {
             if (session != null) {
                 session.setAttribute("2fa_authenticated", true);
             }
+
+            userService.resetFailedAttempts(user); // Reset po sukcesie
             return ResponseEntity.ok("TOTP verified. Fully logged in.");
         } else {
+            userService.increaseFailedAttempts(user);
+
+            if (user.getFailedAttempts() >= UserService.MAX_FAILED_ATTEMPTS) {
+                userService.lock(user);
+                return ResponseEntity.status(HttpStatus.LOCKED).body("Account locked due to multiple failed TOTP attempts.");
+            }
+
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid TOTP code");
         }
     }

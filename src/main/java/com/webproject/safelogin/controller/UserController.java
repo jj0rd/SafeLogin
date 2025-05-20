@@ -37,8 +37,8 @@ public class UserController {
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(10);
 
     private boolean isPasswordValid(String password) {
-        // Co najmniej 8 znaków, 1 mała litera, 1 wielka litera, 1 cyfra, 1 znak specjalny
-        String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&._-])[A-Za-z\\d@$!%*?&._-]{8,}$";
+        // Co najmniej 12 znaków, 1 mała litera, 1 wielka litera, 1 cyfra, 1 znak specjalny
+        String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&._-])[A-Za-z\\d@$!%*?&._-]{12,}$";
         return password != null && password.matches(regex);
     }
 
@@ -54,7 +54,7 @@ public class UserController {
         // Weryfikacja poprawności hasła
         if (!isPasswordValid(newUser.getPassword())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("The password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one digit, and one special character.");
+                    .body("The password must be at least 12 characters long and contain at least one lowercase letter, one uppercase letter, one digit, and one special character.");
         }
 
         // Szyfrowanie hasła
@@ -76,8 +76,10 @@ public class UserController {
         response.put("message", "User registered successfully. Please scan the QR code with your TOTP application.");
         response.put("otpAuthURL", otpAuthURL);
         response.put("qrCode", qrCode); // base64 PNG
+        response.put("secret", secret); // <--- DODAJ TO
 
         return ResponseEntity.ok(response);
+
     }
 
 
@@ -193,5 +195,13 @@ public class UserController {
         user.setTotpSecret(secret);
         return secret;
 
+    }
+    @GetMapping("/check-auth")
+    public ResponseEntity<?> checkAuth(HttpSession session) {
+        Boolean is2fa = (Boolean) session.getAttribute("2fa_authenticated");
+        if (is2fa != null && is2fa) {
+            return ResponseEntity.ok("Authenticated");
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
     }
 }

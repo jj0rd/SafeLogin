@@ -2,13 +2,18 @@ import React from 'react';
 import { Button, message } from 'antd';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { setIsAuthenticated } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:8080/logout');
+      await axios.post('http://localhost:8080/logout', null, {
+        withCredentials: true,
+      });
+      setIsAuthenticated(false);
       message.success('Wylogowano pomyślnie');
       navigate('/');
     } catch (error) {

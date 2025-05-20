@@ -14,13 +14,15 @@ const Register = () => {
       const response = await axios.post('http://localhost:8080/register', values);
       message.success(response.data.message);
       if (response.data.qrCode) {
-        const qrCodeData = response.data.qrCode.replace(/^data:image\/png;base64,/, '');
-        setQrCode(qrCodeData);
-        setIsModalVisible(true);
-      }
-      if (response.data.secret) {
-        setSecret(response.data.secret);
-      }
+            const qrCodeData = response.data.qrCode.replace(/^data:image\/png;base64,/, '');
+            setQrCode(qrCodeData);
+          }
+       if (response.data.secret) {
+            setSecret(response.data.secret);
+          }
+        if (response.data.qrCode || response.data.secret) {
+            setIsModalVisible(true);
+          }
     } catch (error) {
       if (error.response && error.response.data) {
         message.error(error.response.data);
@@ -77,8 +79,8 @@ const handleClose = () => {
           rules={[
             { required: true, message: 'Podaj hasło!' },
             {
-              pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/,
-              message: 'Hasło musi mieć min. 8 znaków, małą i dużą literę, cyfrę i znak specjalny.'
+              pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,}$/,
+              message: 'Hasło musi mieć min. 12 znaków, małą i dużą literę, cyfrę i znak specjalny.'
             }
           ]}
         >
