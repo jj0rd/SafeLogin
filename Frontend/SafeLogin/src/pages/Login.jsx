@@ -8,7 +8,7 @@ const Login = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [totpCode, setTotpCode] = useState('');
   const navigate = useNavigate();
-  const { isAuthenticated, setIsAuthenticated } = useAuth();
+  const { isAuthenticated, login } = useAuth();
 
   if (isAuthenticated) {
     return <Navigate to="/home" />;
@@ -18,9 +18,7 @@ const Login = () => {
     try {
       const response = await fetch('http://localhost:8080/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(values),
       });
@@ -31,11 +29,11 @@ const Login = () => {
 
       if (response.ok) {
         if (data.require2FA) {
-          message.info(data.message);
+          message.info(data.message || 'Wymagana weryfikacja 2FA');
           setIsModalVisible(true);
         } else {
-          message.success(data.message);
-          setIsAuthenticated(true);
+          message.success(data.message || 'Zalogowano');
+          login(data.user || {}); // użyj danych użytkownika jeśli są
           navigate('/home');
         }
       } else {
@@ -51,22 +49,22 @@ const Login = () => {
     try {
       const response = await fetch('http://localhost:8080/2fa/verify', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ code: parseInt(totpCode, 10) }),
       });
 
-      const data = await response.text();
+      const contentType = response.headers.get('content-type');
+      const isJson = contentType && contentType.includes('application/json');
+      const data = isJson ? await response.json() : await response.text();
 
       if (response.ok) {
-        message.success(data);
+        message.success(data.message || 'Weryfikacja zakończona');
         setIsModalVisible(false);
-        setIsAuthenticated(true);
+        login(data.user || {}); // logowanie po udanym 2FA
         navigate('/home');
       } else {
-        message.error(data);
+        message.error(data.message || data || 'Błąd 2FA');
       }
     } catch (err) {
       console.error('Błąd weryfikacji TOTP:', err);

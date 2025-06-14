@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 public class VideoController {
     @Autowired
@@ -22,6 +24,10 @@ public class VideoController {
         return videoRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+    @GetMapping("/AllVideos")
+    public List<Video> getAllVideos() {
+        return videoRepository.findAll();
     }
 
 }
