@@ -1,9 +1,8 @@
 package com.webproject.safelogin.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+
+import java.util.List;
 
 @Entity
 public class Video {
@@ -15,6 +14,9 @@ public class Video {
 
     @Column(columnDefinition = "TEXT")
     private String url;
+
+    @OneToMany(mappedBy = "video")
+    private List<Comment> comments;
 
     public Video(){
     }

@@ -1,10 +1,11 @@
 package com.webproject.safelogin.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 public class User {
@@ -20,6 +21,21 @@ public class User {
     private int failedAttempts;
     private boolean accountLocked = false;
     private LocalDateTime lockTime;
+
+    @OneToMany(mappedBy = "user")
+    private List<Comment> comments;
+
+    @ManyToMany
+    @JoinTable(
+            name = "user_subscriptions",
+            joinColumns = @JoinColumn(name = "subscriber_id"),
+            inverseJoinColumns = @JoinColumn(name = "subscribed_to_id")
+    )
+    private Set<User> subscriptions = new HashSet<>();
+
+    @ManyToMany(mappedBy = "subscriptions")
+    private Set<User> subscribers = new HashSet<>();
+
 
     public User() {
     }
@@ -111,6 +127,30 @@ public class User {
 
     public void setLockTime(LocalDateTime lockTime) {
         this.lockTime = lockTime;
+    }
+
+    public List<Comment> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<Comment> comments) {
+        this.comments = comments;
+    }
+
+    public Set<User> getSubscriptions() {
+        return subscriptions;
+    }
+
+    public void setSubscriptions(Set<User> subscriptions) {
+        this.subscriptions = subscriptions;
+    }
+
+    public Set<User> getSubscribers() {
+        return subscribers;
+    }
+
+    public void setSubscribers(Set<User> subscribers) {
+        this.subscribers = subscribers;
     }
 
     @Override
