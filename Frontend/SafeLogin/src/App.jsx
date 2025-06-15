@@ -12,7 +12,8 @@ import LandingPage from './pages/LandingPage';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import PrivateRoute from './auth/PrivateRoute';
 import MenuItems from './components/MenuItems';
-
+import VideoPlayer
+ from './pages/VideoPlayer';
 const { Header, Content, Footer } = Layout;
 
 const AppContent = () => {
@@ -36,27 +37,28 @@ const AppContent = () => {
 
         <Layout className="app-inner-layout" style={{ background: colorBgContainer, borderRadius: borderRadiusLG }}>
           <Content className="app-content">
-            <Routes>
-              <Route path="/" element={
-                isAuthenticated ? (
-                  <Navigate to="/home" replace />
-                ) : (
-                  <div>
-                    <h1>Witamy na głównej stronie</h1>
-                    <p>Jeśli posiadasz konto, <Link to="/login">zaloguj się</Link>.</p>
-                    <p>W przeciwnym wypadku, <Link to="/register">zarejestruj się</Link>.</p>
-                    <LandingPage></LandingPage>
-                  </div>
-                )
-              } />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/landingpage" element={<LandingPage />} />
-              <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
-              <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-              <Route path="/recommendation" element={<PrivateRoute><Recommendation /></PrivateRoute>} />
-              <Route path="/search" element={<PrivateRoute><Search /></PrivateRoute>} />
-            </Routes>
+                    <Routes>
+                      <Route path="/" element={
+                        isAuthenticated ? (
+                          <Navigate to="/home" replace />
+                        ) : (
+                          <div>
+                            <h1>Witamy na głównej stronie</h1>
+                            <p>Jeśli posiadasz konto, <Link to="/login">zaloguj się</Link>.</p>
+                            <p>W przeciwnym wypadku, <Link to="/register">zarejestruj się</Link>.</p>
+                            <LandingPage />
+                          </div>
+                        )
+                      } />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/landingpage" element={<LandingPage />} />
+                      <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+                      <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+                      <Route path="/recommendation" element={<PrivateRoute><Recommendation /></PrivateRoute>} />
+                      <Route path="/search" element={<PrivateRoute><Search /></PrivateRoute>} />
+                      <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} /> {/* <-- nowa trasa */}
+                    </Routes>
           </Content>
         </Layout>
       </div>

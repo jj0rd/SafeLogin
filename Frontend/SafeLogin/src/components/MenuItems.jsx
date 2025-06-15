@@ -28,6 +28,7 @@ const MenuItems = () => {
           <Menu.Item key="profile"><Link to="/profile">Profile</Link></Menu.Item>
           <Menu.Item key="recommendation"><Link to="/recommendation">Recommendation</Link></Menu.Item>
           <Menu.Item key="search"><Link to="/search">Search</Link></Menu.Item>
+          <Menu.Item key="landingpage"><Link to="/landingpage">LandingPage</Link></Menu.Item>
           <Menu.Item key="username" disabled>
             {user?.nick || 'User'}
           </Menu.Item>

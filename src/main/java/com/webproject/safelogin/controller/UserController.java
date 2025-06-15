@@ -209,6 +209,8 @@ public class UserController {
                     userInfo.put("id", user.getId());
                     userInfo.put("nick", user.getNick());
                     userInfo.put("email", user.getEmail());
+                    userInfo.put("name", user.getName());
+                    userInfo.put("surname", user.getSurname());
                     return ResponseEntity.ok(userInfo);
                 }
             }
