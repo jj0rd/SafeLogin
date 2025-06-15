@@ -1,60 +1,119 @@
-.video-page {
-  padding: 20px;
-}
-
-.app-title {
-  text-align: center;
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.video-container {
+.video-player-container {
   display: flex;
-  gap: 20px;
+  flex-direction: row;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.video-main {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
 }
 
 .video-section {
-  flex: 2;
+  margin-bottom: 24px;
 }
 
-.comments {
-  margin-top: 20px;
-}
-
-.comments textarea {
+.video-element {
   width: 100%;
-  height: 80px;
-  padding: 10px;
-  margin-bottom: 10px;
+  max-height: 480px;
+  border-radius: 12px;
+  background: #000;
+}
+
+.video-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-top: 16px;
+}
+
+.video-description {
+  font-size: 16px;
+  color: #555;
+  margin-top: 8px;
+}
+
+.comments-section {
+  margin-top: 24px;
+}
+
+.comment {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.comment-author {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.comment-text {
+  font-size: 14px;
+  color: #333;
 }
 
 .sidebar {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
-.chat {
-  border: 1px solid #ccc;
-  padding: 10px;
+.chat-section {
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
 }
 
-.chat-box {
-  height: 150px;
-  border: 1px solid #aaa;
-  margin-bottom: 10px;
+.chat-placeholder {
+  font-size: 14px;
+  color: #777;
 }
 
-.recommended .recommended-item {
+.recommended-section {
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
+}
+
+.recommended-video {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
   cursor: pointer;
+  margin-bottom: 12px;
+  gap: 12px;
+  transition: background 0.2s;
 }
 
-.recommended-item img {
-  width: 60px;
-  height: 40px;
+.recommended-video:hover {
+  background: #f0f0f0;
+  border-radius: 8px;
+}
+
+.recommended-thumbnail {
+  width: 100px;
+  height: 60px;
   object-fit: cover;
+  border-radius: 6px;
+}
+
+.recommended-info {
+  flex: 1;
+}
+
+.recommended-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.recommended-meta {
+  font-size: 12px;
+  color: #777;
 }
