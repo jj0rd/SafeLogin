@@ -1,7 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  Card, 
+  Input, 
+  Button, 
+  Avatar, 
+  Typography, 
+  Space, 
+  Divider,
+  Empty,
+  message 
+} from 'antd';
+import { 
+  UserOutlined, 
+  SendOutlined, 
+  MessageOutlined 
+} from '@ant-design/icons';
 import axios from 'axios';
 import './VideoPlayer.css';
+
+const { TextArea } = Input;
+const { Title, Text, Paragraph } = Typography;
 
 const VideoPlayer = () => {
   const { id } = useParams();
@@ -11,6 +30,7 @@ const VideoPlayer = () => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,6 +57,7 @@ const VideoPlayer = () => {
         setCurrentUser(userRes.data);
       } catch (error) {
         console.error('Błąd podczas pobierania danych:', error);
+        message.error('Błąd podczas ładowania danych');
       }
     };
 
@@ -45,10 +66,16 @@ const VideoPlayer = () => {
 
   const handleAddComment = async () => {
     if (!currentUser) {
-      alert('Musisz być zalogowany, aby dodać komentarz.');
+      message.warning('Musisz być zalogowany, aby dodać komentarz.');
       return;
     }
 
+    if (!newComment.trim()) {
+      message.warning('Komentarz nie może być pusty.');
+      return;
+    }
+
+    setLoading(true);
     try {
       await axios.post('http://localhost:8080/addComment', {
         userId: currentUser.id,
@@ -63,8 +90,12 @@ const VideoPlayer = () => {
         withCredentials: true,
       });
       setComments(commentRes.data);
+      message.success('Komentarz został dodany!');
     } catch (error) {
       console.error('Błąd podczas dodawania komentarza:', error);
+      message.error('Błąd podczas dodawania komentarza');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -111,23 +142,117 @@ const VideoPlayer = () => {
           <p className="video-description">{video.description}</p>
         </div>
 
-        <div className="comments-section">
-          <h3>Komentarze</h3>
-          {comments.map((comment, index) => (
-            <div key={index} className="comment">
-              <p className="comment-author">{comment.userNick}</p>
-              <p className="comment-text">{comment.content}</p>
-            </div>
-          ))}
-          <div className="add-comment">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Dodaj komentarz..."
+        {/* Improved Comments Section with Ant Design */}
+        <Card 
+          className="comments-section-card"
+          title={
+            <Space>
+              <MessageOutlined />
+              <Title level={4} style={{ margin: 0 }}>
+                Komentarze ({comments.length})
+              </Title>
+            </Space>
+          }
+        >
+          {/* Add Comment Form */}
+          <Card size="small" style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space align="start">
+                <Avatar 
+                  icon={<UserOutlined />} 
+                  src={currentUser?.avatar}
+                />
+                <div style={{ flex: 1, width: '100%' }}>
+                  <Text strong>
+                    {currentUser?.userNick || 'Gość'}
+                  </Text>
+                </div>
+              </Space>
+              
+              <TextArea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Dodaj komentarz..."
+                rows={3}
+                maxLength={500}
+                showCount
+                style={{ resize: 'none' }}
+              />
+              
+              <div style={{ textAlign: 'right' }}>
+                <Space>
+                  <Button 
+                    onClick={() => setNewComment('')}
+                    disabled={!newComment.trim()}
+                  >
+                    Anuluj
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    icon={<SendOutlined />}
+                    onClick={handleAddComment}
+                    loading={loading}
+                    disabled={!newComment.trim() || !currentUser}
+                  >
+                    Dodaj komentarz
+                  </Button>
+                </Space>
+              </div>
+            </Space>
+          </Card>
+
+          <Divider />
+
+          {/* Comments List */}
+          {comments.length === 0 ? (
+            <Empty 
+              description="Brak komentarzy" 
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
-            <button onClick={handleAddComment}>Dodaj</button>
-          </div>
-        </div>
+          ) : (
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              {comments.map((comment, index) => (
+                <Card 
+                  key={index} 
+                  size="small"
+                  style={{ 
+                    backgroundColor: '#fdfdfd',
+                    border: '1px solid #f0f0f0'
+                  }}
+                >
+                  <Space align="start" style={{ width: '100%' }}>
+                    <Avatar 
+                      icon={<UserOutlined />}
+                      src={comment.userAvatar}
+                      size="default"
+                    />
+                    <div style={{ flex: 1 }}>
+                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                        <Space>
+                          <Text strong style={{ color: '#1890ff' }}>
+                            {comment.userNick}
+                          </Text>
+                          <Text type="secondary" style={{ fontSize: '12px' }}>
+                            {comment.createdAt ? new Date(comment.createdAt).toLocaleString('pl-PL') : 'Teraz'}
+                          </Text>
+                        </Space>
+                        <Paragraph 
+                          style={{ 
+                            margin: 0, 
+                            wordBreak: 'break-word',
+                            whiteSpace: 'pre-wrap'
+                          }}
+                        >
+                          {comment.content}
+                        </Paragraph>
+                      </Space>
+                    </div>
+                  </Space>
+                </Card>
+              ))}
+            </Space>
+          )}
+        </Card>
       </div>
 
       <div className="sidebar">
