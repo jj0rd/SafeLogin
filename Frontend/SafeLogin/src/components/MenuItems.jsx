@@ -13,31 +13,49 @@ const MenuItems = () => {
   };
 
   return (
-    <Menu theme="dark" mode="horizontal" defaultSelectedKeys={['home']}>
-      <Menu.Item key="home">
-        <Link to={isAuthenticated ? '/home' : '/'}>Home</Link>
+    <Menu
+  theme="dark"
+  mode="horizontal"
+  selectedKeys={[window.location.pathname]}
+>
+  {isAuthenticated ? (
+    <>
+      <Menu.Item key="/landingpage">
+        <Link to="/landingpage">LandingPage</Link>
       </Menu.Item>
-
-      {!isAuthenticated ? (
-        <>
-          <Menu.Item key="login"><Link to="/login">Login</Link></Menu.Item>
-          <Menu.Item key="register"><Link to="/register">Register</Link></Menu.Item>
-        </>
-      ) : (
-        <>
-          <Menu.Item key="profile"><Link to="/profile">Profile</Link></Menu.Item>
-          <Menu.Item key="recommendation"><Link to="/recommendation">Recommendation</Link></Menu.Item>
-          <Menu.Item key="search"><Link to="/search">Search</Link></Menu.Item>
-          <Menu.Item key="landingpage"><Link to="/landingpage">LandingPage</Link></Menu.Item>
-          <Menu.Item key="username" disabled>
-            {user?.nick || 'User'}
-          </Menu.Item>
-          <Menu.Item key="logout" onClick={handleLogout}>
-            Logout
-          </Menu.Item>
-        </>
-      )}
-    </Menu>
+      <Menu.Item key="/home">
+        <Link to="/home">Home</Link>
+      </Menu.Item>
+      <Menu.Item key="/profile">
+        <Link to="/profile">Profile</Link>
+      </Menu.Item>
+      <Menu.Item key="/recommendation">
+        <Link to="/recommendation">Recommendation</Link>
+      </Menu.Item>
+      <Menu.Item key="/search">
+        <Link to="/search">Search</Link>
+      </Menu.Item>
+      <Menu.Item key="username" disabled>
+        {user?.nick || 'User'}
+      </Menu.Item>
+      <Menu.Item key="logout" onClick={handleLogout}>
+        Logout
+      </Menu.Item>
+    </>
+  ) : (
+    <>
+      <Menu.Item key="/landingpage">
+        <Link to="/landingpage">LandingPage</Link>
+      </Menu.Item>
+      <Menu.Item key="/login">
+        <Link to="/login">Login</Link>
+      </Menu.Item>
+      <Menu.Item key="/register">
+        <Link to="/register">Register</Link>
+      </Menu.Item>
+    </>
+  )}
+</Menu>
   );
 };
 

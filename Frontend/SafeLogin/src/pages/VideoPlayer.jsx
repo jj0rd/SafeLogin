@@ -1,25 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './VideoPlayer.css';
 
 const VideoPlayer = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [video, setVideo] = useState(null);
   const [recommended, setRecommended] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await axios.get(`http://localhost:8080/getVideo/${id}`, {
-        withCredentials: true,
-      });
-      setVideo(res.data);
+      try {
+        const res = await axios.get(`http://localhost:8080/getVideo/${id}`, {
+          withCredentials: true,
+        });
+        setVideo(res.data);
 
-      const allVideos = await axios.get('http://localhost:8080/AllVideos', {
-        withCredentials: true,
-      });
-      const filtered = allVideos.data.filter(v => v.id !== parseInt(id));
-      setRecommended(filtered);
+        const allVideos = await axios.get('http://localhost:8080/AllVideos', {
+          withCredentials: true,
+        });
+        const filtered = allVideos.data.filter(v => v.id !== parseInt(id));
+        setRecommended(filtered);
+      } catch (error) {
+        console.error('Błąd podczas pobierania danych:', error);
+      }
     };
 
     fetchData();
@@ -90,7 +95,7 @@ const VideoPlayer = () => {
             <div
               key={v.id}
               className="recommended-video"
-              onClick={() => (window.location.href = `/video/${v.id}`)}
+              onClick={() => navigate(`/video/${v.id}`)}
             >
               <img
                 src={v.thumbnail || getYouTubeThumbnail(v.url) || v.url}

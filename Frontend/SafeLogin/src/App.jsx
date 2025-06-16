@@ -39,26 +39,26 @@ const AppContent = () => {
           <Content className="app-content">
                     <Routes>
                       <Route path="/" element={
-                        isAuthenticated ? (
-                          <Navigate to="/home" replace />
-                        ) : (
-                          <div>
-                            <h1>Witamy na głównej stronie</h1>
-                            <p>Jeśli posiadasz konto, <Link to="/login">zaloguj się</Link>.</p>
-                            <p>W przeciwnym wypadku, <Link to="/register">zarejestruj się</Link>.</p>
-                            <LandingPage />
-                          </div>
-                        )
-                      } />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/register" element={<Register />} />
-                      <Route path="/landingpage" element={<LandingPage />} />
-                      <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
-                      <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-                      <Route path="/recommendation" element={<PrivateRoute><Recommendation /></PrivateRoute>} />
-                      <Route path="/search" element={<PrivateRoute><Search /></PrivateRoute>} />
-                      <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} /> {/* <-- nowa trasa */}
-                    </Routes>
+                          isAuthenticated ? (
+                            <Navigate to="/landingpage" replace />
+                          ) : (
+                            <div>
+                              <h1>Witamy na głównej stronie</h1>
+                              <p>Jeśli posiadasz konto, <Link to="/login">zaloguj się</Link>.</p>
+                              <p>W przeciwnym wypadku, <Link to="/register">zarejestruj się</Link>.</p>
+                              <LandingPage />
+                            </div>
+                          )
+                        } />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/landingpage" element={<PrivateRoute><LandingPage /></PrivateRoute>} />
+                        <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+                        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+                        <Route path="/recommendation" element={<PrivateRoute><Recommendation /></PrivateRoute>} />
+                        <Route path="/search" element={<PrivateRoute><Search /></PrivateRoute>} />
+                        <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} />
+                      </Routes>
           </Content>
         </Layout>
       </div>
