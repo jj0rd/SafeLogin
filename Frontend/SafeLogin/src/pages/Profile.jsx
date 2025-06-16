@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Row, Col, Card, Typography, Avatar, Divider, message, Collapse } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
-import './Profile.css'
+import './Profile.css';
+
 const { Title, Text } = Typography;
 const { Meta } = Card;
 const { Panel } = Collapse;
@@ -21,6 +22,19 @@ const Profile = () => {
       .then(res => setVideos(res.data.slice(0, 4)))
       .catch(() => message.error('Nie udało się pobrać filmów'));
   }, []);
+
+  const getThumbnail = (video) => {
+    if (video.thumbnail) return video.thumbnail;
+    if (video.url.includes('youtube.com')) {
+      try {
+        const videoId = new URLSearchParams(new URL(video.url).search).get('v');
+        return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+      } catch {
+        return ''; // fallback image
+      }
+    }
+    return video.url; // fallback for self-hosted mp4s
+  };
 
   return (
     <div className="profile-container">
@@ -64,7 +78,13 @@ const Profile = () => {
                 <Col xs={24} sm={12} md={12} key={video.id}>
                   <Card
                     hoverable
-                    cover={<img alt="thumbnail" src={video.url} style={{ height: 150, objectFit: 'cover' }} />}
+                    cover={
+                      <img
+                        alt="thumbnail"
+                        src={getThumbnail(video)}
+                        style={{ height: 150, objectFit: 'cover' }}
+                      />
+                    }
                     onClick={() => navigate(`/video/${video.id}`)}
                   >
                     <Meta title={video.title} description="Autor, liczba wyświetleń" />

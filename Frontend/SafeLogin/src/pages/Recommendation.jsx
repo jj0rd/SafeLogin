@@ -31,26 +31,41 @@ const Recommendation = () => {
 
     fetchVideos();
   }, []);
+   const getThumbnail = (video) => {
+    if (video.thumbnail) return video.thumbnail;
+    if (video.url.includes('youtube.com')) {
+      try {
+        const videoId = new URLSearchParams(new URL(video.url).search).get('v');
+        return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+      } catch {
+        return ''; // fallback miniatura
+      }
+    }
+    return video.url;
+  };
 
   return (
-    <div style={{ padding: '24px' }}>
-      <h2 style={{ textAlign: 'center' }}>Polecane Filmy</h2>
-      <Row gutter={[16, 16]}>
+    <div className="landing-container">
+      <h2 className="landing-title">Filmy</h2>
+      <div className="video-grid">
         {videos.map(video => (
-          <Col xs={24} sm={12} md={8} lg={6} key={video.id}>
-            <Card
-              hoverable
-              cover={<img alt="thumbnail" src={video.url} style={{ height: 150, objectFit: 'cover' }} />}
-              onClick={() => navigate(`/video/${video.id}`)}
-            >
-              <Meta
-                title={video.title}
-                description="Autor liczba, wyświetleń"
-              />
-            </Card>
-          </Col>
+          <div
+            key={video.id}
+            className="video-card"
+            onClick={() => navigate(`/video/${video.id}`)}
+          >
+            <img
+              className="video-thumbnail"
+              src={getThumbnail(video)}
+              alt={video.title}
+            />
+            <div className="video-info">
+              <h3 className="video-title">{video.title}</h3>
+              <p className="video-meta">Autor | 1234 wyświetlenia</p>
+            </div>
+          </div>
         ))}
-      </Row>
+      </div>
     </div>
   );
 };

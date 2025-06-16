@@ -30,6 +30,19 @@ const LandingPage = () => {
     fetchVideos();
   }, []);
 
+  const getThumbnail = (video) => {
+    if (video.thumbnail) return video.thumbnail;
+    if (video.url.includes('youtube.com')) {
+      try {
+        const videoId = new URLSearchParams(new URL(video.url).search).get('v');
+        return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+      } catch {
+        return ''; // fallback miniatura
+      }
+    }
+    return video.url;
+  };
+
   return (
     <div className="landing-container">
       <h2 className="landing-title">Filmy</h2>
@@ -42,7 +55,7 @@ const LandingPage = () => {
           >
             <img
               className="video-thumbnail"
-              src={video.url}
+              src={getThumbnail(video)}
               alt={video.title}
             />
             <div className="video-info">

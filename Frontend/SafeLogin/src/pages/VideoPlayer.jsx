@@ -27,21 +27,50 @@ const VideoPlayer = () => {
 
   if (!video) return <div>Ładowanie...</div>;
 
+  const isYouTubeLink = video.url.includes('youtube.com');
+
+  const getYouTubeEmbedUrl = (url) => {
+    try {
+      const videoId = new URLSearchParams(new URL(url).search).get('v');
+      return `https://www.youtube.com/embed/${videoId}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const getYouTubeThumbnail = (url) => {
+    try {
+      const videoId = new URLSearchParams(new URL(url).search).get('v');
+      return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <div className="video-player-container">
       <div className="video-main">
         <div className="video-section">
-          <video controls className="video-element">
-            <source src={video.url} type="video/mp4" />
-            Twoja przeglądarka nie wspiera odtwarzacza wideo.
-          </video>
+          {isYouTubeLink ? (
+            <iframe
+              className="video-element iframe-element"
+              src={getYouTubeEmbedUrl(video.url)}
+              title={video.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          ) : (
+            <video controls className="video-element">
+              <source src={video.url} type="video/mp4" />
+              Twoja przeglądarka nie wspiera odtwarzacza wideo.
+            </video>
+          )}
           <h2 className="video-title">{video.title}</h2>
           <p className="video-description">{video.description}</p>
         </div>
 
         <div className="comments-section">
           <h3>Komentarze</h3>
-          {/* Przykładowy komentarz */}
           <div className="comment">
             <p className="comment-author">Użytkownik123</p>
             <p className="comment-text">Super film!</p>
@@ -63,7 +92,11 @@ const VideoPlayer = () => {
               className="recommended-video"
               onClick={() => (window.location.href = `/video/${v.id}`)}
             >
-              <img src={v.url} alt={v.title} className="recommended-thumbnail" />
+              <img
+                src={v.thumbnail || getYouTubeThumbnail(v.url) || v.url}
+                alt={v.title}
+                className="recommended-thumbnail"
+              />
               <div className="recommended-info">
                 <p className="recommended-title">{v.title}</p>
                 <p className="recommended-meta">1234 wyświetleń</p>
