@@ -8,6 +8,9 @@ const VideoPlayer = () => {
   const navigate = useNavigate();
   const [video, setVideo] = useState(null);
   const [recommended, setRecommended] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -22,6 +25,16 @@ const VideoPlayer = () => {
         });
         const filtered = allVideos.data.filter(v => v.id !== parseInt(id));
         setRecommended(filtered);
+
+        const commentRes = await axios.get(`http://localhost:8080/getVideoComments/${id}`, {
+          withCredentials: true,
+        });
+        setComments(commentRes.data);
+
+        const userRes = await axios.get('http://localhost:8080/check-auth', {
+          withCredentials: true,
+        });
+        setCurrentUser(userRes.data);
       } catch (error) {
         console.error('Błąd podczas pobierania danych:', error);
       }
@@ -30,10 +43,34 @@ const VideoPlayer = () => {
     fetchData();
   }, [id]);
 
+  const handleAddComment = async () => {
+    if (!currentUser) {
+      alert('Musisz być zalogowany, aby dodać komentarz.');
+      return;
+    }
+
+    try {
+      await axios.post('http://localhost:8080/addComment', {
+        userId: currentUser.id,
+        videoId: parseInt(id),
+        content: newComment
+      }, {
+        withCredentials: true,
+      });
+
+      setNewComment('');
+      const commentRes = await axios.get(`http://localhost:8080/getVideoComments/${id}`, {
+        withCredentials: true,
+      });
+      setComments(commentRes.data);
+    } catch (error) {
+      console.error('Błąd podczas dodawania komentarza:', error);
+    }
+  };
+
   if (!video) return <div>Ładowanie...</div>;
 
   const isYouTubeLink = video.url.includes('youtube.com');
-
   const getYouTubeEmbedUrl = (url) => {
     try {
       const videoId = new URLSearchParams(new URL(url).search).get('v');
@@ -76,9 +113,19 @@ const VideoPlayer = () => {
 
         <div className="comments-section">
           <h3>Komentarze</h3>
-          <div className="comment">
-            <p className="comment-author">Użytkownik123</p>
-            <p className="comment-text">Super film!</p>
+          {comments.map((comment, index) => (
+            <div key={index} className="comment">
+              <p className="comment-author">{comment.userNick}</p>
+              <p className="comment-text">{comment.content}</p>
+            </div>
+          ))}
+          <div className="add-comment">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Dodaj komentarz..."
+            />
+            <button onClick={handleAddComment}>Dodaj</button>
           </div>
         </div>
       </div>
