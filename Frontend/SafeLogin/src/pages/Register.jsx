@@ -15,34 +15,49 @@ const Register = () => {
   const [secret, setSecret] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const onFinish = async (values) => {
-    try {
-      const csrfToken = getCookie('XSRF-TOKEN');
-      const response = await axios.post('http://localhost:8080/register', values, {
-      headers: {
-        'X-XSRF-TOKEN': csrfToken,
-      },
+ const onFinish = async (values) => {
+  try {
+    // Krok 1: pobierz token CSRF
+    const csrfRes = await axios.get('http://localhost:8080/csrf-token', {
       withCredentials: true,
     });
-      message.success(response.data.message);
-      if (response.data.qrCode) {
-            const qrCodeData = response.data.qrCode.replace(/^data:image\/png;base64,/, '');
-            setQrCode(qrCodeData);
-          }
-       if (response.data.secret) {
-            setSecret(response.data.secret);
-          }
-        if (response.data.qrCode || response.data.secret) {
-            setIsModalVisible(true);
-          }
-    } catch (error) {
-      if (error.response && error.response.data) {
-        message.error(error.response.data);
-      } else {
-        message.error('Błąd połączenia z serwerem.');
+    const csrfToken = csrfRes.data.csrfToken;
+
+    // Krok 2: wyślij dane rejestracyjne z CSRF tokenem
+    const response = await axios.post(
+      'http://localhost:8080/register',
+      values,
+      {
+        withCredentials: true,
+        headers: {
+          'X-XSRF-TOKEN': csrfToken,
+        },
       }
+    );
+
+    message.success(response.data.message);
+
+    // Obsługa MFA (jeśli serwer ją zwraca)
+    if (response.data.qrCode) {
+      const qrCodeData = response.data.qrCode.replace(/^data:image\/png;base64,/, '');
+      setQrCode(qrCodeData);
     }
-  };
+    if (response.data.secret) {
+      setSecret(response.data.secret);
+    }
+    if (response.data.qrCode || response.data.secret) {
+      setIsModalVisible(true);
+    }
+
+  } catch (error) {
+    console.error('Błąd rejestracji:', error);
+    if (error.response && error.response.data) {
+      message.error(error.response.data);
+    } else {
+      message.error('Błąd połączenia z serwerem.');
+    }
+  }
+};
 const handleClose = () => {
     setIsModalVisible(false);
   };

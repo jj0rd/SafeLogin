@@ -61,7 +61,7 @@ const LandingPage = () => {
         const data = await response.json();
         setVideos(data);
         setFilteredVideos(data);
-        setFeaturedVideos(data.slice(0, 3)); // First 3 videos as featured
+        setFeaturedVideos(data.slice(0, 3));
       } catch (error) {
         console.error(error);
         message.error('Błąd podczas pobierania filmów');

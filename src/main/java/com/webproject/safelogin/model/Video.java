@@ -1,7 +1,6 @@
 package com.webproject.safelogin.model;
 
 import jakarta.persistence.*;
-
 import java.util.List;
 
 @Entity
@@ -18,13 +17,18 @@ public class Video {
     @OneToMany(mappedBy = "video")
     private List<Comment> comments;
 
-    public Video(){
+    @ManyToOne
+    @JoinColumn(name = "owner_id")
+    private User owner;
+
+    public Video() {
     }
 
-    public Video(Integer id, String title, String url) {
+    public Video(Integer id, String title, String url, User owner) {
         this.id = id;
         this.title = title;
         this.url = url;
+        this.owner = owner;
     }
 
     public Integer getId() {
@@ -51,12 +55,21 @@ public class Video {
         this.url = url;
     }
 
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
+    }
+
     @Override
     public String toString() {
         return "Video{" +
                 "id=" + id +
                 ", title='" + title + '\'' +
                 ", url='" + url + '\'' +
+                ", owner=" + (owner != null ? owner.getNick() : "null") +
                 '}';
     }
 }
