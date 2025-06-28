@@ -1,0 +1,196 @@
+.video-player-container {
+  display: flex;
+  flex-direction: row;
+  padding: 20px;
+  gap: 20px;
+}
+
+.video-main {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+}
+
+.video-section {
+  background-color: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.video-element {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  background: #000;
+}
+
+.iframe-element {
+  border: none;
+  height: 480px;
+}
+
+.video-title {
+  margin-top: 16px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.video-description {
+  margin-top: 8px;
+  font-size: 16px;
+  color: #555;
+}
+
+.comments-section {
+  margin-top: 24px;
+}
+
+.comment {
+  background-color: #f0f0f0;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.comment-author {
+  font-weight: bold;
+}
+
+.sidebar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.chat-section,
+.recommended-section {
+  background-color: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chat-placeholder {
+  height: 150px;
+  background-color: #eaeaea;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+}
+
+.recommended-video {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.recommended-video:hover {
+  background-color: #f7f7f7;
+}
+
+.recommended-thumbnail {
+  width: 120px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.recommended-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.recommended-title {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.recommended-meta {
+  font-size: 12px;
+  color: #888;
+}
+/* Dodaj te style do swojego pliku VideoPlayer.css */
+
+.comments-section-card {
+  margin-top: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.comments-section-card .ant-card-head {
+  border-bottom: 2px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.comments-section-card .ant-card-body {
+  padding: 20px 24px;
+}
+
+/* Stylowanie dla formularza dodawania komentarza */
+.comments-section-card .ant-input {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.comments-section-card .ant-input:focus,
+.comments-section-card .ant-input:hover {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.comments-section-card .ant-btn {
+  border-radius: 6px;
+  height: 36px;
+  transition: all 0.3s ease;
+}
+
+.comments-section-card .ant-btn-primary {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+}
+
+.comments-section-card .ant-btn-primary:hover {
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+/* Stylowanie dla istniejących komentarzy */
+.comments-section-card .ant-card-small {
+  transition: all 0.3s ease;
+}
+
+.comments-section-card .ant-card-small:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Responsywność */
+@media (max-width: 768px) {
+  .video-player-container {
+    flex-direction: column;
+    padding: 12px;
+  }
+  
+  .sidebar {
+    flex: none;
+  }
+  
+  .comments-section-card .ant-card-body {
+    padding: 16px;
+  }
+  
+  .comments-section-card .ant-card-head {
+    padding: 12px 16px;
+  }
+}

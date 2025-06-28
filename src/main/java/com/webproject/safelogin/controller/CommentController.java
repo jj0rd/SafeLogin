@@ -48,6 +48,7 @@ public class CommentController {
             data.put("userId", comment.getUser().getId());
             data.put("videoId", comment.getVideo().getId());
             data.put("content", comment.getContent());
+            data.put("userNick", comment.getUser().getNick());
             return data;
         }).collect(Collectors.toList());
 

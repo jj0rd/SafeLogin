@@ -200,8 +200,22 @@ public class UserController {
     public ResponseEntity<?> checkAuth(HttpSession session) {
         Boolean is2fa = (Boolean) session.getAttribute("2fa_authenticated");
         if (is2fa != null && is2fa) {
-            return ResponseEntity.ok("Authenticated");
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated()) {
+                String email = auth.getName();
+                User user = userRepository.findByEmail(email);
+                if (user != null) {
+                    Map<String, Object> userInfo = new HashMap<>();
+                    userInfo.put("id", user.getId());
+                    userInfo.put("nick", user.getNick());
+                    userInfo.put("email", user.getEmail());
+                    userInfo.put("name", user.getName());
+                    userInfo.put("surname", user.getSurname());
+                    return ResponseEntity.ok(userInfo);
+                }
+            }
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
     }
+
 }
