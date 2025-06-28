@@ -14,6 +14,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -216,6 +217,31 @@ public class UserController {
             }
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
+    }
+    @GetMapping("/csrf-token")
+    public ResponseEntity<?> getCsrfToken(HttpServletRequest request) {
+        CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+        if (csrfToken != null) {
+            return ResponseEntity.ok().body(new CsrfResponse(csrfToken.getToken()));
+        } else {
+            return ResponseEntity.badRequest().body("CSRF token not available");
+        }
+    }
+
+    public static class CsrfResponse {
+        private String csrfToken;
+
+        public CsrfResponse(String csrfToken) {
+            this.csrfToken = csrfToken;
+        }
+
+        public String getCsrfToken() {
+            return csrfToken;
+        }
+
+        public void setCsrfToken(String csrfToken) {
+            this.csrfToken = csrfToken;
+        }
     }
 
 }

@@ -8,17 +8,25 @@ const Login = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [totpCode, setTotpCode] = useState('');
   const navigate = useNavigate();
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login, csrfToken, setIsAuthenticated, setUser } = useAuth();
 
   if (isAuthenticated) {
     return <Navigate to="/home" />;
   }
 
   const onFinish = async (values) => {
+    if (!csrfToken) {
+      message.error('Token CSRF nie jest dostępny, odśwież stronę');
+      return;
+    }
+
     try {
       const response = await fetch('http://localhost:8080/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-XSRF-TOKEN': csrfToken,
+        },
         credentials: 'include',
         body: JSON.stringify(values),
       });
@@ -33,11 +41,11 @@ const Login = () => {
           setIsModalVisible(true);
         } else {
           message.success(data.message || 'Zalogowano');
-          login(data.user || {}); // użyj danych użytkownika jeśli są
+          login(data.user || {});
           navigate('/home');
         }
       } else {
-        message.error(data || 'Błąd logowania');
+        message.error(data.message || data || 'Błąd logowania');
       }
     } catch (err) {
       console.error('Błąd połączenia:', err);
@@ -46,31 +54,56 @@ const Login = () => {
   };
 
   const handleTotpSubmit = async () => {
-    try {
-      const response = await fetch('http://localhost:8080/2fa/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+  if (!csrfToken) {
+    message.error('Token CSRF nie jest dostępny, odśwież stronę');
+    return;
+  }
+
+  try {
+    const response = await fetch('http://localhost:8080/2fa/verify', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-XSRF-TOKEN': csrfToken,
+      },
+      credentials: 'include',
+      body: JSON.stringify({ code: parseInt(totpCode, 10) }),
+    });
+
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType && contentType.includes('application/json');
+    const data = isJson ? await response.json() : await response.text();
+
+    if (response.ok) {
+      message.success(data.message || 'Weryfikacja zakończona');
+      setIsModalVisible(false);
+
+      // Po prostu oznacz jako zalogowanego
+      setIsAuthenticated(true);
+
+      // Pobierz dane użytkownika, tak jak robi to useEffect
+      const userResponse = await fetch('http://localhost:8080/current-user', {
         credentials: 'include',
-        body: JSON.stringify({ code: parseInt(totpCode, 10) }),
+        headers: { 'X-XSRF-TOKEN': csrfToken },
       });
 
-      const contentType = response.headers.get('content-type');
-      const isJson = contentType && contentType.includes('application/json');
-      const data = isJson ? await response.json() : await response.text();
-
-      if (response.ok) {
-        message.success(data.message || 'Weryfikacja zakończona');
-        setIsModalVisible(false);
-        login(data.user || {}); // logowanie po udanym 2FA
-        navigate('/home');
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        setUser(userData);
       } else {
-        message.error(data.message || data || 'Błąd 2FA');
+        setUser(null);
       }
-    } catch (err) {
-      console.error('Błąd weryfikacji TOTP:', err);
-      message.error('Błąd połączenia przy weryfikacji TOTP');
+
+      navigate('/home');
+    } else {
+      message.error(data.message || data || 'Błąd 2FA');
     }
-  };
+  } catch (err) {
+    console.error('Błąd weryfikacji TOTP:', err);
+    message.error('Błąd połączenia przy weryfikacji TOTP');
+  }
+};
+
 
   return (
     <div style={{ maxWidth: 400, margin: '0 auto' }}>

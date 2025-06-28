@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import './Profile.css';
+import { useAuth } from '../auth/AuthContext';
 
 const { Title, Text, Paragraph } = Typography;
 const { Meta } = Card;
@@ -40,6 +41,7 @@ const Profile = () => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { csrfToken } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {

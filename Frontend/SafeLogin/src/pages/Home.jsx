@@ -6,14 +6,18 @@ import { useAuth } from '../auth/AuthContext';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { setIsAuthenticated } = useAuth();
+  const { csrfToken, setIsAuthenticated, setUser } = useAuth();
 
   const handleLogout = async () => {
     try {
       await axios.post('http://localhost:8080/logout', null, {
         withCredentials: true,
+        headers: {
+            'X-XSRF-TOKEN': csrfToken,  // dodajemy token w nagłówku
+          },
       });
       setIsAuthenticated(false);
+      setUser(null);
       message.success('Wylogowano pomyślnie');
       navigate('/');
     } catch (error) {
