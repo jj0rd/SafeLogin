@@ -107,6 +107,7 @@
   padding: 40px 24px;
   background: #f8f9fa;
   min-height: 60vh;
+  margin-top: 10px;
 }
 
 .videos-section .ant-row {
@@ -121,6 +122,7 @@
   border: none;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   background: white;
+  margin-top: 10px;
 }
 
 .video-card:hover {

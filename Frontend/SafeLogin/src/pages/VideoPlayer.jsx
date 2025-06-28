@@ -9,12 +9,23 @@ import {
   Space, 
   Divider,
   Empty,
-  message 
+  message,
+  Row,
+  Col,
+  Badge,
+  Tag,
+  Tooltip,
+  Skeleton
 } from 'antd';
 import { 
   UserOutlined, 
   SendOutlined, 
-  MessageOutlined 
+  MessageOutlined,
+  PlayCircleOutlined,
+  EyeOutlined,
+  CommentOutlined,
+  HeartOutlined,
+  ShareAltOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import './VideoPlayer.css';
@@ -31,9 +42,11 @@ const VideoPlayer = () => {
   const [newComment, setNewComment] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
+      setPageLoading(true);
       try {
         const res = await axios.get(`http://localhost:8080/getVideo/${id}`, {
           withCredentials: true,
@@ -58,6 +71,8 @@ const VideoPlayer = () => {
       } catch (error) {
         console.error('Błąd podczas pobierania danych:', error);
         message.error('Błąd podczas ładowania danych');
+      } finally {
+        setPageLoading(false);
       }
     };
 
@@ -99,9 +114,8 @@ const VideoPlayer = () => {
     }
   };
 
-  if (!video) return <div>Ładowanie...</div>;
-
-  const isYouTubeLink = video.url.includes('youtube.com');
+  const isYouTubeLink = video?.url.includes('youtube.com');
+  
   const getYouTubeEmbedUrl = (url) => {
     try {
       const videoId = new URLSearchParams(new URL(url).search).get('v');
@@ -120,168 +134,293 @@ const VideoPlayer = () => {
     }
   };
 
+  if (pageLoading) {
+    return (
+      <div className="video-player-container">
+        <Row gutter={[24, 24]}>
+          <Col xs={24} lg={16}>
+            <Card className="video-section-card">
+              <Skeleton.Image className="video-skeleton" active />
+              <Skeleton active paragraph={{ rows: 3 }} />
+            </Card>
+            <Card className="comments-section-card" style={{ marginTop: 24 }}>
+              <Skeleton active avatar paragraph={{ rows: 2 }} />
+            </Card>
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card>
+              <Skeleton active paragraph={{ rows: 4 }} />
+            </Card>
+          </Col>
+        </Row>
+      </div>
+    );
+  }
+
+  if (!video) return <div>Błąd ładowania wideo</div>;
+
   return (
     <div className="video-player-container">
-      <div className="video-main">
-        <div className="video-section">
-          {isYouTubeLink ? (
-            <iframe
-              className="video-element iframe-element"
-              src={getYouTubeEmbedUrl(video.url)}
-              title={video.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          ) : (
-            <video controls className="video-element">
-              <source src={video.url} type="video/mp4" />
-              Twoja przeglądarka nie wspiera odtwarzacza wideo.
-            </video>
-          )}
-          <h2 className="video-title">{video.title}</h2>
-          <p className="video-description">{video.description}</p>
-        </div>
-
-        {/* Improved Comments Section with Ant Design */}
-        <Card 
-          className="comments-section-card"
-          title={
-            <Space>
-              <MessageOutlined />
-              <Title level={4} style={{ margin: 0 }}>
-                Komentarze ({comments.length})
-              </Title>
-            </Space>
-          }
-        >
-          {/* Add Comment Form */}
-          <Card size="small" style={{ marginBottom: 16, backgroundColor: '#fafafa' }}>
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <Space align="start">
-                <Avatar 
-                  icon={<UserOutlined />} 
-                  src={currentUser?.avatar}
+      <Row gutter={[24, 24]}>
+        {/* Main Video Section */}
+        <Col xs={24} lg={16}>
+          <Card className="video-section-card" bordered={false}>
+            <div className="video-wrapper">
+              {isYouTubeLink ? (
+                <iframe
+                  className="video-element"
+                  src={getYouTubeEmbedUrl(video.url)}
+                  title={video.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
                 />
-                <div style={{ flex: 1, width: '100%' }}>
-                  <Text strong>
-                    {currentUser?.userNick || 'Gość'}
-                  </Text>
-                </div>
-              </Space>
+              ) : (
+                <video controls className="video-element">
+                  <source src={video.url} type="video/mp4" />
+                  Twoja przeglądarka nie wspiera odtwarzacza wideo.
+                </video>
+              )}
+            </div>
+            
+            <div className="video-info">
+              <Title level={2} className="video-title">
+                {video.title}
+              </Title>
               
-              <TextArea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Dodaj komentarz..."
-                rows={3}
-                maxLength={500}
-                showCount
-                style={{ resize: 'none' }}
-              />
-              
-              <div style={{ textAlign: 'right' }}>
-                <Space>
-                  <Button 
-                    onClick={() => setNewComment('')}
-                    disabled={!newComment.trim()}
-                  >
-                    Anuluj
-                  </Button>
-                  <Button 
-                    type="primary" 
-                    icon={<SendOutlined />}
-                    onClick={handleAddComment}
-                    loading={loading}
-                    disabled={!newComment.trim() || !currentUser}
-                  >
-                    Dodaj komentarz
-                  </Button>
+              <div className="video-meta">
+                <Space size="large">
+                  <Space>
+                    <EyeOutlined />
+                    <Text>1,234 wyświetleń</Text>
+                  </Space>
+                  <Space>
+                    <CommentOutlined />
+                    <Text>{comments.length} komentarzy</Text>
+                  </Space>
+                </Space>
+                
+                <Space className="video-actions">
+                  <Tooltip title="Polub">
+                    <Button icon={<HeartOutlined />} size="large">
+                      Polub
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Udostępnij">
+                    <Button icon={<ShareAltOutlined />} size="large">
+                      Udostępnij
+                    </Button>
+                  </Tooltip>
                 </Space>
               </div>
-            </Space>
+              
+              <Divider />
+              
+              <Paragraph className="video-description">
+                {video.description}
+              </Paragraph>
+            </div>
           </Card>
 
-          <Divider />
-
-          {/* Comments List */}
-          {comments.length === 0 ? (
-            <Empty 
-              description="Brak komentarzy" 
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          ) : (
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              {comments.map((comment, index) => (
-                <Card 
-                  key={index} 
-                  size="small"
-                  style={{ 
-                    backgroundColor: '#fdfdfd',
-                    border: '1px solid #f0f0f0'
-                  }}
-                >
-                  <Space align="start" style={{ width: '100%' }}>
-                    <Avatar 
-                      icon={<UserOutlined />}
-                      src={comment.userAvatar}
-                      size="default"
-                    />
-                    <div style={{ flex: 1 }}>
-                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <Space>
-                          <Text strong style={{ color: '#1890ff' }}>
-                            {comment.userNick}
-                          </Text>
-                          <Text type="secondary" style={{ fontSize: '12px' }}>
-                            {comment.createdAt ? new Date(comment.createdAt).toLocaleString('pl-PL') : 'Teraz'}
-                          </Text>
-                        </Space>
-                        <Paragraph 
-                          style={{ 
-                            margin: 0, 
-                            wordBreak: 'break-word',
-                            whiteSpace: 'pre-wrap'
-                          }}
-                        >
-                          {comment.content}
-                        </Paragraph>
-                      </Space>
-                    </div>
+          {/* Enhanced Comments Section */}
+          <Card 
+            className="comments-section-card"
+            title={
+              <Space>
+                <MessageOutlined />
+                <Title level={4} style={{ margin: 0 }}>
+                  Komentarze
+                </Title>
+                <Badge count={comments.length} showZero />
+              </Space>
+            }
+            bordered={false}
+          >
+            {/* Add Comment Form */}
+            <Card size="small" className="add-comment-card">
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Space align="start" style={{ width: '100%' }}>
+                  <Avatar 
+                    icon={<UserOutlined />} 
+                    src={currentUser?.avatar}
+                    size="large"
+                  />
+                  <div style={{ flex: 1 }}>
+                    <Text strong style={{ color: '#1890ff' }}>
+                      {currentUser?.userNick || 'Zaloguj się, aby komentować'}
+                    </Text>
+                    {currentUser && (
+                      <Tag color="blue" size="small" style={{ marginLeft: 8 }}>
+                        Online
+                      </Tag>
+                    )}
+                  </div>
+                </Space>
+                
+                <TextArea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Podziel się swoimi przemyśleniami..."
+                  rows={4}
+                  maxLength={500}
+                  showCount
+                  className="comment-textarea"
+                  disabled={!currentUser}
+                />
+                
+                <div style={{ textAlign: 'right' }}>
+                  <Space>
+                    <Button 
+                      onClick={() => setNewComment('')}
+                      disabled={!newComment.trim()}
+                    >
+                      Wyczyść
+                    </Button>
+                    <Button 
+                      type="primary" 
+                      icon={<SendOutlined />}
+                      onClick={handleAddComment}
+                      loading={loading}
+                      disabled={!newComment.trim() || !currentUser}
+                      className="submit-comment-btn"
+                    >
+                      Opublikuj komentarz
+                    </Button>
                   </Space>
-                </Card>
-              ))}
-            </Space>
-          )}
-        </Card>
-      </div>
+                </div>
+              </Space>
+            </Card>
 
-      <div className="sidebar">
-        <div className="chat-section">
-          <h3>Czat</h3>
-          <div className="chat-placeholder">Tutaj pojawi się czat na żywo</div>
-        </div>
+            <Divider />
 
-        <div className="recommended-section">
-          <h3>Polecane</h3>
-          {recommended.map(v => (
-            <div
-              key={v.id}
-              className="recommended-video"
-              onClick={() => navigate(`/video/${v.id}`)}
+            {/* Comments List */}
+            {comments.length === 0 ? (
+              <Empty 
+                description="Brak komentarzy" 
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              >
+                <Text type="secondary">
+                  Bądź pierwszy, który skomentuje to wideo!
+                </Text>
+              </Empty>
+            ) : (
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                {comments.map((comment, index) => (
+                  <Card 
+                    key={index} 
+                    size="small"
+                    className="comment-card"
+                    hoverable
+                  >
+                    <Space align="start" style={{ width: '100%' }}>
+                      <Avatar 
+                        icon={<UserOutlined />}
+                        src={comment.userAvatar}
+                        size="large"
+                      />
+                      <div style={{ flex: 1 }}>
+                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                          <Space wrap>
+                            <Text strong className="comment-author">
+                              {comment.userNick}
+                            </Text>
+                            <Text type="secondary" className="comment-time">
+                              {comment.createdAt ? new Date(comment.createdAt).toLocaleString('pl-PL') : 'Teraz'}
+                            </Text>
+                          </Space>
+                          <Paragraph 
+                            className="comment-content"
+                            style={{ margin: 0 }}
+                          >
+                            {comment.content}
+                          </Paragraph>
+                        </Space>
+                      </div>
+                    </Space>
+                  </Card>
+                ))}
+              </Space>
+            )}
+          </Card>
+        </Col>
+
+        {/* Sidebar */}
+        <Col xs={24} lg={8}>
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
+            {/* Live Chat Section */}
+            <Card 
+              title={
+                <Space>
+                  <MessageOutlined />
+                  <Text>Czat na żywo</Text>
+                  <Badge status="processing" text="Aktywny" />
+                </Space>
+              }
+              className="chat-section-card"
+              bordered={false}
             >
-              <img
-                src={v.thumbnail || getYouTubeThumbnail(v.url) || v.url}
-                alt={v.title}
-                className="recommended-thumbnail"
-              />
-              <div className="recommended-info">
-                <p className="recommended-title">{v.title}</p>
-                <p className="recommended-meta">1234 wyświetleń</p>
+              <div className="chat-placeholder">
+                <Space direction="vertical" align="center">
+                  <MessageOutlined style={{ fontSize: 24, color: '#bfbfbf' }} />
+                  <Text type="secondary">Czat będzie dostępny wkrótce</Text>
+                </Space>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
+            </Card>
+
+            {/* Recommended Videos */}
+            <Card 
+              title={
+                <Space>
+                  <PlayCircleOutlined />
+                  <Text>Polecane filmy</Text>
+                </Space>
+              }
+              className="recommended-section-card"
+              bordered={false}
+            >
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                {recommended.map(v => (
+                  <Card
+                    key={v.id}
+                    size="small"
+                    className="recommended-video-card"
+                    hoverable
+                    onClick={() => navigate(`/video/${v.id}`)}
+                    cover={
+                      <div className="recommended-thumbnail-wrapper">
+                        <img
+                          src={v.thumbnail || getYouTubeThumbnail(v.url) || v.url}
+                          alt={v.title}
+                          className="recommended-thumbnail"
+                        />
+                        <div className="play-overlay">
+                          <PlayCircleOutlined />
+                        </div>
+                      </div>
+                    }
+                  >
+                    <Card.Meta
+                      title={
+                        <Text className="recommended-title" ellipsis={{ tooltip: v.title }}>
+                          {v.title}
+                        </Text>
+                      }
+                      description={
+                        <Space>
+                          <Text type="secondary" className="recommended-meta">
+                            1,234 wyświetleń
+                          </Text>
+                          <Text type="secondary">•</Text>
+                          <Text type="secondary">2 dni temu</Text>
+                        </Space>
+                      }
+                    />
+                  </Card>
+                ))}
+              </Space>
+            </Card>
+          </Space>
+        </Col>
+      </Row>
     </div>
   );
 };

@@ -48,3 +48,59 @@ html, body, #root {
 .app-footer {
   text-align: center;
 }
+.app-header {
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  background: #001529;
+  position: fixed;
+  width: 100%;
+  z-index: 1;
+  top: 0;
+}
+
+/* Upewnij się, że menu ma odpowiednią szerokość */
+.app-header .ant-menu {
+  flex: 1;
+  border: none;
+  background: transparent;
+}
+
+/* Wymuś tryb horizontal */
+.ant-menu-horizontal {
+  border-bottom: none !important;
+  line-height: 64px;
+}
+
+.ant-menu-horizontal > .ant-menu-item,
+.ant-menu-horizontal > .ant-menu-submenu {
+  border-bottom: none !important;
+}
+
+/* Zapobiegnij zawijaniu menu na małych ekranach */
+.ant-menu-horizontal {
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.ant-menu-horizontal .ant-menu-item {
+  display: inline-block !important;
+}
+
+/* Dodaj margines dla treści, żeby nie była pod fixed header */
+.app-content-wrapper {
+  margin-top: 64px;
+  padding: 24px;
+}
+
+/* Media query dla bardzo małych ekranów */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 10px;
+  }
+  
+  .ant-menu-horizontal .ant-menu-item {
+    padding: 0 10px !important;
+  }
+}
