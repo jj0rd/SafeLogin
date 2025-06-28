@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Row, Col, Card, Typography, Avatar, Divider, message, Collapse } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
 import './Profile.css';
+import { useAuth } from '../auth/AuthContext';
 
 const { Title, Text } = Typography;
 const { Meta } = Card;
@@ -12,6 +13,7 @@ const Profile = () => {
   const [user, setUser] = useState(null);
   const [videos, setVideos] = useState([]);
   const navigate = useNavigate();
+  const { csrfToken } = useAuth();
 
   useEffect(() => {
     axios.get('http://localhost:8080/check-auth', { withCredentials: true })

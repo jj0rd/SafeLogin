@@ -4,6 +4,12 @@ import axios from 'axios';
 
 const { Paragraph } = Typography;
 
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
 const Register = () => {
   const [qrCode, setQrCode] = useState(null);
   const [secret, setSecret] = useState(null);
@@ -11,7 +17,13 @@ const Register = () => {
 
   const onFinish = async (values) => {
     try {
-      const response = await axios.post('http://localhost:8080/register', values);
+      const csrfToken = getCookie('XSRF-TOKEN');
+      const response = await axios.post('http://localhost:8080/register', values, {
+      headers: {
+        'X-XSRF-TOKEN': csrfToken,
+      },
+      withCredentials: true,
+    });
       message.success(response.data.message);
       if (response.data.qrCode) {
             const qrCodeData = response.data.qrCode.replace(/^data:image\/png;base64,/, '');
