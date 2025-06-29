@@ -285,7 +285,7 @@ const Profile = () => {
                 description="Nie masz jeszcze żadnych filmów"
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
               >
-                <Button type="primary" icon={<VideoCameraOutlined />}>
+                <Button type="primary" icon={<VideoCameraOutlined />} onClick={() => navigate('/addvideo')} >
                   Dodaj pierwszy film
                 </Button>
               </Empty>
