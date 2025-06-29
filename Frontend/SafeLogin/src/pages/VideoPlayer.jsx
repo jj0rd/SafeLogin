@@ -86,7 +86,7 @@ const VideoPlayer = () => {
               setChatMessages(prev => [...prev, body]);
             });
 
-            client.subscribe(`/user/${currentUser.userNick}/queue/private`, message => {
+            client.subscribe(`/user/${currentUser.nick}/queue/private`, message => {
               const body = JSON.parse(message.body);
               setChatMessages(prev => [...prev, { ...body, content: `(Prywatnie) ${body.content}` }]);
             });
@@ -104,17 +104,103 @@ const VideoPlayer = () => {
     }, [currentUser]);
 
     const sendChatMessage = () => {
-    if (stompClient && chatInput.trim()) {
-      const messageObj = {
-        content: chatInput,
-        sender: { nick: currentUser.userNick },
-        receiver: null, // lub ustaw User receiver jeśli prywatna wiadomość
-      };
-      stompClient.publish({ destination: '/app/chat', body: JSON.stringify(messageObj) });
-      setChatInput('');
+  if (stompClient && chatInput.trim() && currentUser) {
+    const messageObj = {
+      content: chatInput.trim(),
+      sender: { 
+        id: currentUser.id,
+        nick: currentUser.nick 
+      },
+      receiver: null, // null dla wiadomości publicznych
+      type: 'PUBLIC'
+    };
+    
+    console.log('Wysyłanie wiadomości:', messageObj);
+    stompClient.publish({ 
+      destination: '/app/chat', 
+      body: JSON.stringify(messageObj) 
+    });
+    setChatInput('');
+  } else {
+    message.warning('Musisz być zalogowany, aby wysyłać wiadomości.');
+  }
+};
+
+    // Funkcja do wysyłania prywatnych wiadomości
+    const sendPrivateMessage = (receiverNick, content) => {
+      if (stompClient && content.trim() && currentUser) {
+        const messageObj = {
+          content: content.trim(),
+          sender: { 
+            id: currentUser.id,
+            nick: currentUser.nick 
+          },
+          receiver: { 
+            nick: receiverNick 
+          },
+          type: 'PRIVATE'
+        };
+        
+        console.log('Wysyłanie prywatnej wiadomości:', messageObj);
+        stompClient.publish({ 
+          destination: '/app/private', 
+          body: JSON.stringify(messageObj) 
+        });
       }
     };
+    const handleChatKeyPress = (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+    }
+  };
+useEffect(() => {
+  if (currentUser) {
+    const socket = new SockJS('http://localhost:8080/ws');
+    const client = new Client({
+      webSocketFactory: () => socket,
+      onConnect: (frame) => {
+        console.log('Połączono z WebSocket:', frame);
+        
+        // Subskrypcja na publiczne wiadomości
+        client.subscribe('/topic/messages', message => {
+          console.log('Otrzymano publiczną wiadomość:', message.body);
+          const body = JSON.parse(message.body);
+          setChatMessages(prev => [...prev, body]);
+        });
 
+        // Subskrypcja na prywatne wiadomości
+        client.subscribe(`/user/${currentUser.nick}/queue/private`, message => {
+          console.log('Otrzymano prywatną wiadomość:', message.body);
+          const body = JSON.parse(message.body);
+          setChatMessages(prev => [...prev, { 
+            ...body, 
+            content: `🔒 ${body.content}`,
+            isPrivate: true 
+          }]);
+        });
+
+        // Załaduj ostatnie wiadomości po połączeniu
+        loadRecentMessages();
+      },
+      onStompError: (error) => {
+        console.error('Błąd WebSocket:', error);
+        message.error('Błąd połączenia z czatem');
+      },
+      debug: (str) => {
+        console.log('STOMP Debug:', str);
+      }
+    });
+
+    client.activate();
+    setStompClient(client);
+
+    return () => {
+      console.log('Rozłączanie WebSocket');
+      client.deactivate();
+    };
+  }
+}, [currentUser]);
   useEffect(() => {
     const checkSubscription = async () => {
       if (currentUser && video?.ownerId) {
@@ -319,7 +405,7 @@ const handleUnsubscribe = async () => {
                   <Avatar icon={<UserOutlined />} src={currentUser?.avatar} size="large" />
                   <div style={{ flex: 1 }}>
                     <Text strong style={{ color: '#1890ff' }}>
-                      {currentUser?.userNick || 'Zaloguj się, aby komentować'}
+                      {currentUser?.nick || 'Zaloguj się, aby komentować'}
                     </Text>
                     {currentUser && (
                       <Tag color="blue" size="small" style={{ marginLeft: 8 }}>Online</Tag>
@@ -369,7 +455,7 @@ const handleUnsubscribe = async () => {
                       <div style={{ flex: 1 }}>
                         <Space direction="vertical" size="small" style={{ width: '100%' }}>
                           <Space wrap>
-                            <Text strong className="comment-author">{comment.userNick}</Text>
+                            <Text strong className="comment-author">{comment.nick}</Text>
                             <Text type="secondary" className="comment-time">
                               {comment.createdAt ? new Date(comment.createdAt).toLocaleString('pl-PL') : 'Teraz'}
                             </Text>
@@ -394,7 +480,7 @@ const handleUnsubscribe = async () => {
                 <Space>
                   <MessageOutlined />
                   <Text>Czat na żywo</Text>
-                  <Badge status="processing" text="Połączono" />
+                  <Badge status="processing" text={stompClient ? "Połączono" : "Rozłączono"} />
                 </Space>
               )}
               className="chat-section-card"
@@ -422,8 +508,12 @@ const handleUnsubscribe = async () => {
                       <div
                         key={i}
                         style={{
-                          backgroundColor: msg.sender?.nick === currentUser?.userNick ? '#e6f7ff' : '#fff',
-                          border: '1px solid #f0f0f0',
+                          backgroundColor: msg.sender?.nick === currentUser?.nick 
+                            ? '#e6f7ff' 
+                            : msg.isPrivate 
+                              ? '#fff7e6' 
+                              : '#fff',
+                          border: `1px solid ${msg.isPrivate ? '#ffd591' : '#f0f0f0'}`,
                           borderRadius: 8,
                           padding: 8
                         }}
@@ -431,9 +521,17 @@ const handleUnsubscribe = async () => {
                         <Space direction="vertical" size={2} style={{ width: '100%' }}>
                           <Space>
                             <Avatar size="small" icon={<UserOutlined />} />
-                            <Text strong>{msg.sender?.nick}</Text>
+                            <Text strong style={{ 
+                              color: msg.sender?.nick === currentUser?.nick ? '#1890ff' : '#000' 
+                            }}>
+                              {msg.sender?.nick}
+                            </Text>
+                            {msg.isPrivate && <Tag color="orange" size="small">Prywatne</Tag>}
                             <Text type="secondary" style={{ fontSize: 10 }}>
-                              {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
+                              {msg.timestamp 
+                                ? new Date(msg.timestamp).toLocaleTimeString('pl-PL') 
+                                : new Date().toLocaleTimeString('pl-PL')
+                              }
                             </Text>
                           </Space>
                           <Text>{msg.content}</Text>
@@ -442,32 +540,42 @@ const handleUnsubscribe = async () => {
                     ))}
                   </Space>
                 )}
-               </div>
+              </div>
 
-                <Input.TextArea
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onPressEnter={(e) => {
-                    if (!e.shiftKey) {
-                      e.preventDefault();
-                      sendChatMessage();
-                    }
-                  }}
-                  placeholder="Wpisz wiadomość i naciśnij Enter, aby wysłać"
-                  rows={2}
-                  style={{ resize: 'none' }}
-                />
-                <div style={{ textAlign: 'right', marginTop: 8 }}>
+              <Input.TextArea
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyPress={handleChatKeyPress}
+                placeholder={currentUser 
+                  ? "Wpisz wiadomość i naciśnij Enter, aby wysłać" 
+                  : "Zaloguj się, aby pisać na czacie"
+                }
+                rows={2}
+                style={{ resize: 'none' }}
+                disabled={!currentUser}
+                maxLength={500}
+                showCount
+              />
+              <div style={{ textAlign: 'right', marginTop: 8 }}>
+                <Space>
+                  <Button
+                    onClick={() => setChatInput('')}
+                    disabled={!chatInput.trim()}
+                    size="small"
+                  >
+                    Wyczyść
+                  </Button>
                   <Button
                     type="primary"
                     icon={<SendOutlined />}
                     onClick={sendChatMessage}
-                    disabled={!chatInput.trim()}
+                    disabled={!chatInput.trim() || !currentUser}
                   >
                     Wyślij
                   </Button>
-                </div>
-              </Card>
+                </Space>
+              </div>
+            </Card>
 
 
             <Card

@@ -23,11 +23,12 @@ public class ChatService {
         return chatMessageRepository.save(message);
     }
 
-    public List<ChatMessage> getChatHistory(User sender, User receiver) {
-        List<ChatMessage> messages1 = chatMessageRepository.findBySenderAndReceiver(sender, receiver);
-        List<ChatMessage> messages2 = chatMessageRepository.findBySenderAndReceiver(receiver, sender);
-        messages1.addAll(messages2);
-        messages1.sort(Comparator.comparing(ChatMessage::getTimestamp));
-        return messages1;
+    public List<ChatMessage> getPublicMessages() {
+        return chatMessageRepository.findByReceiverIsNullOrderByTimestampDesc();
     }
+
+    public List<ChatMessage> getPrivateMessages(String userNick) {
+        return chatMessageRepository.findByReceiverNickOrderByTimestampDesc(userNick);
+    }
+
 }

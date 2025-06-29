@@ -2,11 +2,16 @@ package com.webproject.safelogin.controller;
 
 import com.webproject.safelogin.model.ChatMessage;
 import com.webproject.safelogin.service.ChatService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import java.util.List;
 
 
 @Controller
@@ -34,6 +39,15 @@ public class ChatController {
                 "/queue/private",
                 message
         );
+    }
+//    @GetMapping("/api/chat/public")
+//    public ResponseEntity<List<ChatMessage>> getPublicMessages() {
+//        return ResponseEntity.ok(chatService.getRecentPublicMessages(50));
+//    }
+
+    @GetMapping("/api/chat/private/{userNick}")
+    public ResponseEntity<List<ChatMessage>> getPrivateMessages(@PathVariable String userNick) {
+        return ResponseEntity.ok(chatService.getPrivateMessages(userNick));
     }
 
 }

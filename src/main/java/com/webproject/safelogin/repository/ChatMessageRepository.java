@@ -12,4 +12,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     List<ChatMessage> findBySenderAndReceiver(User sender, User receiver);
     List<ChatMessage> findByReceiverAndSender(User receiver, User sender);
+    List<ChatMessage> findByReceiverIsNullOrderByTimestampDesc();
+    // Pobierz prywatne wiadomości dla użytkownika
+    List<ChatMessage> findByReceiverNickOrderByTimestampDesc(String userNick);
 }
