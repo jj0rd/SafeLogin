@@ -163,5 +163,10 @@ public class User {
                 ", password='" + password + '\'' +
                 '}';
     }
+    @OneToMany(mappedBy = "sender")
+    private List<ChatMessage> sentMessages;
+
+    @OneToMany(mappedBy = "receiver")
+    private List<ChatMessage> receivedMessages;
 
 }

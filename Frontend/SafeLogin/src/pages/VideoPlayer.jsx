@@ -27,6 +27,8 @@ import {
   HeartOutlined,
   ShareAltOutlined
 } from '@ant-design/icons';
+import SockJS from 'sockjs-client';
+import { Client } from '@stomp/stompjs';
 import axios from 'axios';
 import './VideoPlayer.css';
 
@@ -44,6 +46,9 @@ const VideoPlayer = () => {
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [stompClient, setStompClient] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -69,6 +74,46 @@ const VideoPlayer = () => {
     };
     fetchData();
   }, [id]);
+
+      useEffect(() => {
+      if (currentUser) {
+        const socket = new SockJS('http://localhost:8080/ws');
+        const client = new Client({
+          webSocketFactory: () => socket,
+          onConnect: () => {
+            client.subscribe('/topic/messages', message => {
+              const body = JSON.parse(message.body);
+              setChatMessages(prev => [...prev, body]);
+            });
+
+            client.subscribe(`/user/${currentUser.userNick}/queue/private`, message => {
+              const body = JSON.parse(message.body);
+              setChatMessages(prev => [...prev, { ...body, content: `(Prywatnie) ${body.content}` }]);
+            });
+          },
+          onStompError: console.error,
+        });
+
+        client.activate();
+        setStompClient(client);
+
+        return () => {
+          client.deactivate();
+        };
+      }
+    }, [currentUser]);
+
+    const sendChatMessage = () => {
+    if (stompClient && chatInput.trim()) {
+      const messageObj = {
+        content: chatInput,
+        sender: { nick: currentUser.userNick },
+        receiver: null, // lub ustaw User receiver jeśli prywatna wiadomość
+      };
+      stompClient.publish({ destination: '/app/chat', body: JSON.stringify(messageObj) });
+      setChatInput('');
+      }
+    };
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -344,24 +389,86 @@ const handleUnsubscribe = async () => {
 
         <Col xs={24} lg={8}>
           <Space direction="vertical" style={{ width: '100%' }} size="large">
-            <Card
+          <Card
               title={(
                 <Space>
                   <MessageOutlined />
                   <Text>Czat na żywo</Text>
-                  <Badge status="processing" text="Aktywny" />
+                  <Badge status="processing" text="Połączono" />
                 </Space>
               )}
               className="chat-section-card"
               bordered={false}
             >
-              <div className="chat-placeholder">
-                <Space direction="vertical" align="center">
-                  <MessageOutlined style={{ fontSize: 24, color: '#bfbfbf' }} />
-                  <Text type="secondary">Czat będzie dostępny wkrótce</Text>
-                </Space>
-              </div>
-            </Card>
+              <div
+                style={{
+                  maxHeight: 300,
+                  overflowY: 'auto',
+                  padding: 8,
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: 4,
+                  marginBottom: 12
+                }}
+              >
+                {chatMessages.length === 0 ? (
+                  <Empty
+                    description="Brak wiadomości"
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    style={{ padding: '16px 0' }}
+                  />
+                ) : (
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {chatMessages.map((msg, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          backgroundColor: msg.sender?.nick === currentUser?.userNick ? '#e6f7ff' : '#fff',
+                          border: '1px solid #f0f0f0',
+                          borderRadius: 8,
+                          padding: 8
+                        }}
+                      >
+                        <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                          <Space>
+                            <Avatar size="small" icon={<UserOutlined />} />
+                            <Text strong>{msg.sender?.nick}</Text>
+                            <Text type="secondary" style={{ fontSize: 10 }}>
+                              {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
+                            </Text>
+                          </Space>
+                          <Text>{msg.content}</Text>
+                        </Space>
+                      </div>
+                    ))}
+                  </Space>
+                )}
+               </div>
+
+                <Input.TextArea
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onPressEnter={(e) => {
+                    if (!e.shiftKey) {
+                      e.preventDefault();
+                      sendChatMessage();
+                    }
+                  }}
+                  placeholder="Wpisz wiadomość i naciśnij Enter, aby wysłać"
+                  rows={2}
+                  style={{ resize: 'none' }}
+                />
+                <div style={{ textAlign: 'right', marginTop: 8 }}>
+                  <Button
+                    type="primary"
+                    icon={<SendOutlined />}
+                    onClick={sendChatMessage}
+                    disabled={!chatInput.trim()}
+                  >
+                    Wyślij
+                  </Button>
+                </div>
+              </Card>
+
 
             <Card
               title={(
