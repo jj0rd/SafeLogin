@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  message, 
-  Typography, 
-  Skeleton, 
-  Empty, 
-  Tag, 
-  Button, 
-  Space, 
+import {
+  Card,
+  Row,
+  Col,
+  message,
+  Typography,
+  Skeleton,
+  Empty,
+  Tag,
+  Button,
+  Space,
   Divider,
   Avatar,
   Tooltip,
@@ -18,12 +18,12 @@ import {
   Affix,
   BackTop
 } from 'antd';
-import { 
-  PlayCircleOutlined, 
-  EyeOutlined, 
-  ClockCircleOutlined, 
-  HeartOutlined, 
-  ShareAltOutlined, 
+import {
+  PlayCircleOutlined,
+  EyeOutlined,
+  ClockCircleOutlined,
+  HeartOutlined,
+  ShareAltOutlined,
   FilterOutlined,
   ThunderboltOutlined,
   FireOutlined,
@@ -44,30 +44,55 @@ const Recommendation = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchVideos = async () => {
+    const fetchUserAndVideos = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:8080/AllVideos', {
+
+        // 1. Sprawdź autoryzację i pobierz userId
+        const authRes = await fetch('http://localhost:8080/check-auth', {
           method: 'GET',
           credentials: 'include',
         });
+        if (!authRes.ok) {
+          throw new Error('Nieautoryzowany użytkownik');
+        }
+        const userData = await authRes.json();
+        const userId = userData.id;
 
+        // 2. Pobierz filmy z subskrypcji
+        let response = await fetch(`http://localhost:8080/subscribedVideos/${userId}`, {
+          method: 'GET',
+          credentials: 'include',
+        });
         if (!response.ok) {
-          throw new Error('Nie udało się pobrać filmów');
+          throw new Error('Nie udało się pobrać filmów z subskrypcji');
+        }
+        let data = await response.json();
+
+        // 3. Fallback, jeśli brak subskrypcji
+        if (Array.isArray(data) && data.length === 0) {
+          const fallbackRes = await fetch('http://localhost:8080/AllVideos', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          if (!fallbackRes.ok) {
+            throw new Error('Nie udało się pobrać wszystkich filmów');
+          }
+          data = await fallbackRes.json();
         }
 
-        const data = await response.json();
         setVideos(data);
         setFilteredVideos(data);
+
       } catch (error) {
         console.error(error);
-        message.error('Błąd podczas pobierania filmów');
+        message.error(error.message || 'Błąd podczas pobierania filmów');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVideos();
+    fetchUserAndVideos();
   }, []);
 
   const getThumbnail = (video) => {
@@ -83,9 +108,8 @@ const Recommendation = () => {
     return video.url;
   };
 
-  const getRandomViews = () => {
-    return Math.floor(Math.random() * 50000) + 1000;
-  };
+  const getRandomViews = () =>
+    Math.floor(Math.random() * 50000) + 1000;
 
   const getRandomDuration = () => {
     const minutes = Math.floor(Math.random() * 20) + 1;
@@ -98,9 +122,13 @@ const Recommendation = () => {
     if (filter === 'all') {
       setFilteredVideos(videos);
     } else if (filter === 'popular') {
-      setFilteredVideos([...videos].sort(() => Math.random() - 0.5).slice(0, Math.ceil(videos.length * 0.7)));
+      setFilteredVideos([...videos]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, Math.ceil(videos.length * 0.7)));
     } else if (filter === 'recent') {
-      setFilteredVideos([...videos].reverse().slice(0, Math.ceil(videos.length * 0.8)));
+      setFilteredVideos([...videos]
+        .reverse()
+        .slice(0, Math.ceil(videos.length * 0.8)));
     }
   };
 
@@ -132,7 +160,6 @@ const Recommendation = () => {
 
   return (
     <div className="recommendation-container">
-      {/* Header sekcja */}
       <div className="recommendation-header">
         <div className="header-content">
           <div className="title-section">
@@ -159,7 +186,6 @@ const Recommendation = () => {
         </div>
       </div>
 
-      {/* Filtry */}
       <Affix offsetTop={20}>
         <Card className="filter-card" bodyStyle={{ padding: '16px 24px' }}>
           <Space size="middle" align="center">
@@ -188,7 +214,6 @@ const Recommendation = () => {
         </Card>
       </Affix>
 
-      {/* Grid filmów */}
       <div className="videos-section">
         {filteredVideos.length === 0 ? (
           <Empty
@@ -228,32 +253,21 @@ const Recommendation = () => {
                     </div>
                   }
                   actions={[
-                    <Tooltip title="Polub">
-                      <HeartOutlined key="like" />
-                    </Tooltip>,
-                    <Tooltip title="Udostępnij">
-                      <ShareAltOutlined key="share" />
-                    </Tooltip>,
-                    <Tooltip title="Dodaj do ulubionych">
-                      <StarOutlined key="favorite" />
-                    </Tooltip>
+                    <Tooltip title="Polub"><HeartOutlined key="like" /></Tooltip>,
+                    <Tooltip title="Udostępnij"><ShareAltOutlined key="share" /></Tooltip>,
+                    <Tooltip title="Dodaj do ulubionych"><StarOutlined key="favorite" /></Tooltip>
                   ]}
                   onClick={() => navigate(`/video/${video.id}`)}
                 >
                   <Meta
                     avatar={
-                      <Avatar 
-                        size="small" 
-                        style={{ backgroundColor: '#1890ff' }}
-                      >
+                      <Avatar size="small" style={{ backgroundColor: '#1890ff' }}>
                         {video.title?.charAt(0)?.toUpperCase()}
                       </Avatar>
                     }
                     title={
                       <Tooltip title={video.title}>
-                        <Text ellipsis className="video-title">
-                          {video.title}
-                        </Text>
+                        <Text ellipsis className="video-title">{video.title}</Text>
                       </Tooltip>
                     }
                     description={
@@ -262,18 +276,8 @@ const Recommendation = () => {
                           Kanał Autora
                         </Text>
                         <Space size="middle" className="video-stats">
-                          <Space size="small">
-                            <EyeOutlined />
-                            <Text type="secondary">
-                              {getRandomViews().toLocaleString()}
-                            </Text>
-                          </Space>
-                          <Space size="small">
-                            <ClockCircleOutlined />
-                            <Text type="secondary">
-                              {Math.floor(Math.random() * 7) + 1}d temu
-                            </Text>
-                          </Space>
+                          <Space size="small"><EyeOutlined /><Text type="secondary">{getRandomViews().toLocaleString()}</Text></Space>
+                          <Space size="small"><ClockCircleOutlined /><Text type="secondary">{Math.floor(Math.random() * 7) + 1}d temu</Text></Space>
                         </Space>
                         <div className="video-tags">
                           {index % 3 === 0 && <Tag color="blue">Popularne</Tag>}
@@ -290,25 +294,16 @@ const Recommendation = () => {
         )}
       </div>
 
-      {/* Load more button */}
       {filteredVideos.length > 0 && (
         <div className="load-more-section">
-          <Button 
-            type="default" 
-            size="large"
-            icon={<ThunderboltOutlined />}
-            className="load-more-button"
-          >
+          <Button type="default" size="large" icon={<ThunderboltOutlined />} className="load-more-button">
             Załaduj więcej rekomendacji
           </Button>
         </div>
       )}
 
-      {/* Back to top */}
       <BackTop>
-        <div className="back-to-top">
-          <VerticalAlignTopOutlined />
-        </div>
+        <div className="back-to-top"><VerticalAlignTopOutlined /></div>
       </BackTop>
     </div>
   );

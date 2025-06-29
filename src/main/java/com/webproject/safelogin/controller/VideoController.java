@@ -7,11 +7,13 @@ import com.webproject.safelogin.model.VideoDTO;
 import com.webproject.safelogin.model.VideoResponseDTO;
 import com.webproject.safelogin.repository.UserRepository;
 import com.webproject.safelogin.repository.VideoRepository;
+import com.webproject.safelogin.service.SubscriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -22,6 +24,8 @@ public class VideoController {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private SubscriptionService subscriptionService;
 
     @PostMapping("/addVideo")
     public ResponseEntity<String> addVideo(@RequestBody VideoDTO videoDTO) {
@@ -79,5 +83,21 @@ public class VideoController {
                 ))
                 .collect(Collectors.toList());
     }
+    @GetMapping("/subscribedVideos/{userId}")
+    public List<VideoResponseDTO> getSubscribedVideos(@PathVariable Integer userId) {
+        Set<User> subscriptions = subscriptionService.getSubscriptions(userId);
+
+        return videoRepository.findAll().stream()
+                .filter(video -> video.getOwner() != null && subscriptions.contains(video.getOwner()))
+                .map(video -> new VideoResponseDTO(
+                        video.getId(),
+                        video.getTitle(),
+                        video.getUrl(),
+                        video.getOwner().getId(),
+                        video.getOwner().getNick()
+                ))
+                .collect(Collectors.toList());
+    }
+
 
 }
