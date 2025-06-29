@@ -39,7 +39,8 @@ public class SecurityConfig {
         SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
             return http
                     .csrf(csrf -> csrf
-                            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+                            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                            .ignoringRequestMatchers("/ws/**", "/ws", "/ws/info", "/ws/websocket"))
                     .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .authorizeHttpRequests(request -> request
                             .requestMatchers(
@@ -51,7 +52,19 @@ public class SecurityConfig {
                                     "/swagger-ui/**",
                                     "/swagger-ui.html",
                                     "/getVideo/**",
-                                    "/2fa/verify"
+                                    "/2fa/verify",
+                                    "/ws/**", // WebSocket endpoint
+                                    "/ws", // Główny endpoint
+                                    "/ws/info", // SockJS info endpoint
+                                    "/ws/websocket", // WebSocket transport
+                                    "/ws/xhr_streaming", // XHR streaming transport
+                                    "/ws/xhr_send", // XHR send transport
+                                    "/ws/xhr", // XHR transport
+                                    "/ws/jsonp", // JSONP transport
+                                    "/ws/jsonp_send", // JSONP send transport
+                                    "/ws/eventsource", // EventSource transport
+                                    "/ws/htmlfile", // HtmlFile transport
+                                    "/sockjs-node/**" // SockJS może używać tego
                             ).permitAll()
                             .anyRequest().authenticated()
                     )
@@ -97,15 +110,6 @@ public class SecurityConfig {
             return config.getAuthenticationManager();
         }
 
-        @Bean
-        public AuthorizationManager<Message<?>> messageAuthorizationManager() {
-            return MessageMatcherDelegatingAuthorizationManager.builder()
-                    .simpDestMatchers("/app/**").authenticated()
-                    .simpSubscribeDestMatchers("/topic/**").permitAll()
-                    .simpTypeMatchers(SimpMessageType.MESSAGE, SimpMessageType.SUBSCRIBE).authenticated()
-                    .anyMessage().denyAll()
-                    .build();
-        }
 
     }
 

@@ -30,6 +30,7 @@ import {
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import axios from 'axios';
+import Cookies from 'js-cookie';
 import './VideoPlayer.css';
 
 const { TextArea } = Input;
@@ -49,6 +50,8 @@ const VideoPlayer = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [stompClient, setStompClient] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('Rozłączono');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,56 +78,49 @@ const VideoPlayer = () => {
     fetchData();
   }, [id]);
 
-      useEffect(() => {
-      if (currentUser) {
-        const socket = new SockJS('http://localhost:8080/ws');
-        const client = new Client({
-          webSocketFactory: () => socket,
-          onConnect: () => {
-            client.subscribe('/topic/messages', message => {
-              const body = JSON.parse(message.body);
-              setChatMessages(prev => [...prev, body]);
-            });
-
-            client.subscribe(`/user/${currentUser.nick}/queue/private`, message => {
-              const body = JSON.parse(message.body);
-              setChatMessages(prev => [...prev, { ...body, content: `(Prywatnie) ${body.content}` }]);
-            });
-          },
-          onStompError: console.error,
-        });
-
-        client.activate();
-        setStompClient(client);
-
-        return () => {
-          client.deactivate();
-        };
-      }
-    }, [currentUser]);
+     
 
     const sendChatMessage = () => {
-  if (stompClient && chatInput.trim() && currentUser) {
-    const messageObj = {
-      content: chatInput.trim(),
-      sender: { 
-        id: currentUser.id,
-        nick: currentUser.nick 
-      },
-      receiver: null, // null dla wiadomości publicznych
-      type: 'PUBLIC'
-    };
-    
-    console.log('Wysyłanie wiadomości:', messageObj);
-    stompClient.publish({ 
-      destination: '/app/chat', 
-      body: JSON.stringify(messageObj) 
-    });
-    setChatInput('');
-  } else {
-    message.warning('Musisz być zalogowany, aby wysyłać wiadomości.');
-  }
-};
+          if (!currentUser) {
+            message.warning('Musisz być zalogowany, aby wysyłać wiadomości.');
+            return;
+          }
+          
+          if (!stompClient || !isConnected) {
+            message.warning('Brak połączenia z czatem. Spróbuj ponownie za chwilę.');
+            return;
+          }
+          
+          if (!chatInput.trim()) {
+            message.warning('Wiadomość nie może być pusta.');
+            return;
+          }
+
+          const messageObj = {
+            content: chatInput.trim(),
+            sender: { 
+              id: currentUser.id,
+              nick: currentUser.userNick || currentUser.nick || currentUser.username // sprawdź różne możliwe nazwy
+            },
+            receiver: null,
+            type: 'PUBLIC'
+          };
+          
+          console.log('Wysyłanie wiadomości:', messageObj);
+          console.log('Stan połączenia:', isConnected);
+          console.log('STOMP Client:', stompClient);
+          
+          try {
+            stompClient.publish({ 
+              destination: '/app/chat', 
+              body: JSON.stringify(messageObj) 
+            });
+            setChatInput('');
+          } catch (error) {
+            console.error('Błąd wysyłania wiadomości:', error);
+            message.error('Nie udało się wysłać wiadomości');
+          }
+        };
 
     // Funkcja do wysyłania prywatnych wiadomości
     const sendPrivateMessage = (receiverNick, content) => {
@@ -148,59 +144,201 @@ const VideoPlayer = () => {
         });
       }
     };
-    const handleChatKeyPress = (e) => {
+  const handleChatKeyPress = (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendChatMessage();
     }
   };
-useEffect(() => {
-  if (currentUser) {
-    const socket = new SockJS('http://localhost:8080/ws');
-    const client = new Client({
-      webSocketFactory: () => socket,
-      onConnect: (frame) => {
-        console.log('Połączono z WebSocket:', frame);
-        
+      useEffect(() => {
+  if (!currentUser) {
+    console.log('❌ Brak currentUser - nie inicjalizuję WebSocket');
+    setConnectionStatus('Nie zalogowano');
+    return;
+  }
+
+  console.log('🔍 Dane użytkownika:', currentUser);
+  console.log('🚀 Rozpoczynam inicjalizację WebSocket...');
+  setConnectionStatus('Łączenie...');
+  
+  const userNick = currentUser.userNick || currentUser.nick || currentUser.username;
+  if (!userNick) {
+    console.error('❌ Brak nick użytkownika:', currentUser);
+    message.error('Błąd: brak nazwy użytkownika');
+    return;
+  }
+
+  console.log('👤 Używam nicka:', userNick);
+
+  let publicSub, privateSub;
+  let isCleanedUp = false;
+
+  const client = new Client({
+    webSocketFactory: () => {
+      console.log('🔌 Tworzę połączenie SockJS do: http://localhost:8080/ws');
+      const sock = new SockJS('http://localhost:8080/ws');
+      
+      // Dodaj event listenery dla SockJS
+      sock.onopen = () => {
+        console.log('🟢 SockJS: onopen - połączenie otwarte');
+      };
+      
+      sock.onclose = (e) => {
+        console.log('🔴 SockJS: onclose - połączenie zamknięte', e);
+      };
+      
+      sock.onerror = (e) => {
+        console.error('🔴 SockJS: onerror - błąd połączenia', e);
+      };
+      
+      return sock;
+    },
+    reconnectDelay: 5000,
+    heartbeatIncoming: 4000,
+    heartbeatOutgoing: 4000,
+
+    onConnect: (frame) => {
+      if (isCleanedUp) {
+        console.log('⚠️ Połączenie nawiązane, ale komponent już został oczyszczony');
+        return;
+      }
+      
+      console.log('✅ STOMP: Połączono z WebSocket!', frame);
+      console.log('🔍 Frame headers:', frame.headers);
+      setIsConnected(true);
+      setConnectionStatus('Połączono');
+
+      try {
         // Subskrypcja na publiczne wiadomości
-        client.subscribe('/topic/messages', message => {
-          console.log('Otrzymano publiczną wiadomość:', message.body);
-          const body = JSON.parse(message.body);
-          setChatMessages(prev => [...prev, body]);
+        console.log('📡 Tworzę subskrypcję publiczną: /topic/messages');
+        publicSub = client.subscribe('/topic/messages', message => {
+          if (isCleanedUp) return;
+          console.log('📨 Otrzymano publiczną wiadomość:', message.body);
+          try {
+            const body = JSON.parse(message.body);
+            setChatMessages(prev => [...prev, body]);
+          } catch (error) {
+            console.error('❌ Błąd parsowania wiadomości:', error);
+          }
         });
 
         // Subskrypcja na prywatne wiadomości
-        client.subscribe(`/user/${currentUser.nick}/queue/private`, message => {
-          console.log('Otrzymano prywatną wiadomość:', message.body);
-          const body = JSON.parse(message.body);
-          setChatMessages(prev => [...prev, { 
-            ...body, 
-            content: `🔒 ${body.content}`,
-            isPrivate: true 
-          }]);
+        const privateDestination = `/user/${userNick}/queue/private`;
+        console.log('🔒 Tworzę subskrypcję prywatną:', privateDestination);
+        privateSub = client.subscribe(privateDestination, message => {
+          if (isCleanedUp) return;
+          console.log('🔒 Otrzymano prywatną wiadomość:', message.body);
+          try {
+            const body = JSON.parse(message.body);
+            setChatMessages(prev => [...prev, { 
+              ...body, 
+              content: `🔒 ${body.content}`,
+              isPrivate: true 
+            }]);
+          } catch (error) {
+            console.error('❌ Błąd parsowania prywatnej wiadomości:', error);
+          }
         });
 
-        // Załaduj ostatnie wiadomości po połączeniu
+        console.log('✅ Wszystkie subskrypcje utworzone pomyślnie');
         loadRecentMessages();
-      },
-      onStompError: (error) => {
-        console.error('Błąd WebSocket:', error);
-        message.error('Błąd połączenia z czatem');
-      },
-      debug: (str) => {
-        console.log('STOMP Debug:', str);
+      } catch (error) {
+        console.error('❌ Błąd tworzenia subskrypcji:', error);
       }
-    });
+    },
 
+    onDisconnect: (frame) => {
+      console.log('❌ STOMP: Rozłączono z WebSocket', frame);
+      if (!isCleanedUp) {
+        setIsConnected(false);
+        setConnectionStatus('Rozłączono');
+      }
+    },
+
+    onStompError: (error) => {
+      console.error('❌ STOMP: Błąd protokołu STOMP:', error);
+      console.error('🔍 Error details:', {
+        command: error.command,
+        headers: error.headers,
+        body: error.body
+      });
+      if (!isCleanedUp) {
+        setIsConnected(false);
+        setConnectionStatus('Błąd STOMP');
+        message.error(`Błąd STOMP: ${error.headers?.message || error.command}`);
+      }
+    },
+
+    onWebSocketError: (error) => {
+      console.error('❌ WebSocket: Błąd połączenia WebSocket:', error);
+      if (!isCleanedUp) {
+        setIsConnected(false);
+        setConnectionStatus('Błąd WebSocket');
+      }
+    },
+
+    onWebSocketClose: (event) => {
+      console.log('🔴 WebSocket: Połączenie zamknięte', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean
+      });
+    },
+
+    debug: (str) => {
+      console.log('🔧 STOMP Debug:', str);
+    }
+  });
+
+  try {
+    console.log('⚡ Aktywuję klienta STOMP...');
     client.activate();
     setStompClient(client);
-
-    return () => {
-      console.log('Rozłączanie WebSocket');
-      client.deactivate();
-    };
+    console.log('✅ Klient STOMP aktywowany');
+  } catch (error) {
+    console.error('❌ Błąd aktywacji klienta STOMP:', error);
+    setConnectionStatus('Błąd aktywacji');
   }
-}, [currentUser]);
+
+  // Cleanup function
+  return () => {
+    console.log('🧹 Rozpoczynam cleanup WebSocket...');
+    isCleanedUp = true;
+    
+    if (publicSub) {
+      try {
+        console.log('🗑️ Anulowanie subskrypcji publicznej...');
+        publicSub.unsubscribe();
+      } catch (error) {
+        console.warn('⚠️ Błąd anulowania publicznej subskrypcji:', error);
+      }
+    }
+    
+    if (privateSub) {
+      try {
+        console.log('🗑️ Anulowanie subskrypcji prywatnej...');
+        privateSub.unsubscribe();
+      } catch (error) {
+        console.warn('⚠️ Błąd anulowania prywatnej subskrypcji:', error);
+      }
+    }
+    
+    if (client && client.active) {
+      try {
+        console.log('🔌 Dezaktywacja klienta STOMP...');
+        client.deactivate();
+      } catch (error) {
+        console.warn('⚠️ Błąd dezaktywacji klienta:', error);
+      }
+    }
+    
+    setIsConnected(false);
+    setConnectionStatus('Rozłączono');
+    setStompClient(null);
+    console.log('✅ Cleanup WebSocket zakończony');
+  };
+}, [currentUser?.id]); // ✅ Używaj tylko stabilnego ID zamiast całego obiektu
+
   useEffect(() => {
     const checkSubscription = async () => {
       if (currentUser && video?.ownerId) {
@@ -475,17 +613,57 @@ const handleUnsubscribe = async () => {
 
         <Col xs={24} lg={8}>
           <Space direction="vertical" style={{ width: '100%' }} size="large">
-          <Card
+         <Card
               title={(
                 <Space>
                   <MessageOutlined />
                   <Text>Czat na żywo</Text>
-                  <Badge status="processing" text={stompClient ? "Połączono" : "Rozłączono"} />
+                  <Badge 
+                    status={isConnected ? "processing" : "error"} 
+                    text={connectionStatus} 
+                  />
+                  {currentUser && (
+                    <Tag color="blue" size="small">
+                      {currentUser.userNick || currentUser.nick || currentUser.username}
+                    </Tag>
+                  )}
                 </Space>
               )}
               className="chat-section-card"
               bordered={false}
+              extra={
+                <Button 
+                  size="small" 
+                  onClick={() => {
+                    console.log('🔄 Wymuszenie ponownego połączenia...');
+                    if (stompClient) {
+                      stompClient.deactivate();
+                    }
+                    // Wymusi ponowne połączenie przez zmianę currentUser
+                    setCurrentUser({...currentUser});
+                  }}
+                  disabled={isConnected}
+                >
+                  Połącz ponownie
+                </Button>
+              }
             >
+              {/* Wskaźnik stanu połączenia */}
+              {!isConnected && (
+                <div style={{ 
+                  padding: 8, 
+                  backgroundColor: '#fff7e6', 
+                  border: '1px solid #ffd591',
+                  borderRadius: 4,
+                  marginBottom: 12,
+                  textAlign: 'center'
+                }}>
+                  <Text type="warning">
+                    {connectionStatus === 'Łączenie...' ? '🔄 Łączenie z czatem...' : '⚠️ Brak połączenia z czatem'}
+                  </Text>
+                </div>
+              )}
+
               <div
                 style={{
                   maxHeight: 300,
@@ -508,7 +686,7 @@ const handleUnsubscribe = async () => {
                       <div
                         key={i}
                         style={{
-                          backgroundColor: msg.sender?.nick === currentUser?.nick 
+                          backgroundColor: msg.sender?.nick === (currentUser?.userNick || currentUser?.nick || currentUser?.username)
                             ? '#e6f7ff' 
                             : msg.isPrivate 
                               ? '#fff7e6' 
@@ -522,9 +700,9 @@ const handleUnsubscribe = async () => {
                           <Space>
                             <Avatar size="small" icon={<UserOutlined />} />
                             <Text strong style={{ 
-                              color: msg.sender?.nick === currentUser?.nick ? '#1890ff' : '#000' 
+                              color: msg.sender?.nick === (currentUser?.userNick || currentUser?.nick || currentUser?.username) ? '#1890ff' : '#000' 
                             }}>
-                              {msg.sender?.nick}
+                              {msg.sender?.nick || 'Nieznany'}
                             </Text>
                             {msg.isPrivate && <Tag color="orange" size="small">Prywatne</Tag>}
                             <Text type="secondary" style={{ fontSize: 10 }}>
@@ -545,14 +723,21 @@ const handleUnsubscribe = async () => {
               <Input.TextArea
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
-                onKeyPress={handleChatKeyPress}
+                onPressEnter={(e) => {
+                  if (!e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                  }
+                }}
                 placeholder={currentUser 
-                  ? "Wpisz wiadomość i naciśnij Enter, aby wysłać" 
+                  ? isConnected
+                    ? "Wpisz wiadomość i naciśnij Enter, aby wysłać (Shift+Enter dla nowej linii)" 
+                    : "Łączenie z czatem..."
                   : "Zaloguj się, aby pisać na czacie"
                 }
                 rows={2}
                 style={{ resize: 'none' }}
-                disabled={!currentUser}
+                disabled={!currentUser || !isConnected}
                 maxLength={500}
                 showCount
               />
@@ -569,7 +754,8 @@ const handleUnsubscribe = async () => {
                     type="primary"
                     icon={<SendOutlined />}
                     onClick={sendChatMessage}
-                    disabled={!chatInput.trim() || !currentUser}
+                    disabled={!chatInput.trim() || !currentUser || !isConnected}
+                    loading={connectionStatus === 'Łączenie...'}
                   >
                     Wyślij
                   </Button>
