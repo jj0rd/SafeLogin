@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext';
 import PrivateRoute from './auth/PrivateRoute';
 import MenuItems from './components/MenuItems';
 import VideoPlayer from './pages/VideoPlayer';
+import AddVideo from './pages/AddVideo';
 const { Header, Content, Footer } = Layout;
 
 const AppContent = () => {
@@ -57,6 +58,7 @@ const AppContent = () => {
                         <Route path="/recommendation" element={<PrivateRoute><Recommendation /></PrivateRoute>} />
                         <Route path="/search" element={<PrivateRoute><Search /></PrivateRoute>} />
                         <Route path="/video/:id" element={<PrivateRoute><VideoPlayer /></PrivateRoute>} />
+                        <Route path="/addvideo" element={<AddVideo />} />
                       </Routes>
           </Content>
         </Layout>

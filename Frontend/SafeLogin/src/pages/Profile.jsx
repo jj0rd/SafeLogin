@@ -44,26 +44,29 @@ const Profile = () => {
   const { csrfToken } = useAuth();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        const [userRes, videosRes] = await Promise.all([
-          axios.get('http://localhost:8080/check-auth', { withCredentials: true }),
-          axios.get('http://localhost:8080/AllVideos', { withCredentials: true })
-        ]);
-        
-        setUser(userRes.data);
-        setVideos(videosRes.data.slice(0, 4));
-      } catch (error) {
-        message.error('Nie udało się pobrać danych');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      const userRes = await axios.get('http://localhost:8080/check-auth', { withCredentials: true });
+      const userData = userRes.data;
+      setUser(userData);
 
-    fetchData();
-  }, []);
+      const videosRes = await axios.get(`http://localhost:8080/videosByUser/${userData.id}`, {
+        withCredentials: true
+      });
+      setVideos(videosRes.data);
+
+    } catch (error) {
+      message.error('Nie udało się pobrać danych');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, []);
+
 
   const getThumbnail = (video) => {
     if (video.thumbnail) return video.thumbnail;
@@ -272,7 +275,7 @@ const Profile = () => {
               </Space>
             }
             extra={
-              <Button type="primary">
+              <Button type="primary" onClick={() => navigate('/addvideo')}>
                 Dodaj nowy film
               </Button>
             }

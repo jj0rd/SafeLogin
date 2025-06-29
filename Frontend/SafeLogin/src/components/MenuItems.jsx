@@ -23,9 +23,6 @@ const MenuItems = () => {
       <Menu.Item key="/landingpage">
         <Link to="/landingpage">LandingPage</Link>
       </Menu.Item>
-      <Menu.Item key="/home">
-        <Link to="/home">Home</Link>
-      </Menu.Item>
       <Menu.Item key="/profile">
         <Link to="/profile">Profile</Link>
       </Menu.Item>
