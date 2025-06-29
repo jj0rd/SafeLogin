@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { 
   Row, 
   Col, 
@@ -47,28 +48,33 @@ const LandingPage = () => {
 
   useEffect(() => {
     const fetchVideos = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch('http://localhost:8080/AllVideos', {
-          method: 'GET',
-          credentials: 'include',
-        });
+        setLoading(true);
+        try {
+          // Krok 1: pobierz token CSRF
+          const csrfRes = await axios.get('http://localhost:8080/csrf-token', {
+            withCredentials: true,
+          });
+          const csrfToken = csrfRes.data.csrfToken;
 
-        if (!response.ok) {
-          throw new Error('Nie udało się pobrać filmów');
+          // Krok 2: pobierz filmy z tokenem CSRF
+          const response = await axios.get('http://localhost:8080/AllVideos', {
+            withCredentials: true,
+            headers: {
+              'X-XSRF-TOKEN': csrfToken,
+            },
+          });
+
+          const data = response.data;
+          setVideos(data);
+          setFilteredVideos(data);
+          setFeaturedVideos(data.slice(0, 3));
+        } catch (error) {
+          console.error(error);
+          message.error('Błąd podczas pobierania filmów');
+        } finally {
+          setLoading(false);
         }
-
-        const data = await response.json();
-        setVideos(data);
-        setFilteredVideos(data);
-        setFeaturedVideos(data.slice(0, 3));
-      } catch (error) {
-        console.error(error);
-        message.error('Błąd podczas pobierania filmów');
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
     fetchVideos();
   }, []);

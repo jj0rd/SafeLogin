@@ -12,8 +12,7 @@ import LandingPage from './pages/LandingPage';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import PrivateRoute from './auth/PrivateRoute';
 import MenuItems from './components/MenuItems';
-import VideoPlayer
- from './pages/VideoPlayer';
+import VideoPlayer from './pages/VideoPlayer';
 const { Header, Content, Footer } = Layout;
 
 const AppContent = () => {
@@ -52,7 +51,7 @@ const AppContent = () => {
                         } />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
-                        <Route path="/landingpage" element={<PrivateRoute><LandingPage /></PrivateRoute>} />
+                        <Route path="/landingpage" element={<LandingPage />} />
                         <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
                         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
                         <Route path="/recommendation" element={<PrivateRoute><Recommendation /></PrivateRoute>} />
